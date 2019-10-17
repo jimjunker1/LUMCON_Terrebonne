@@ -5,7 +5,7 @@ load_packages = function(){
   library(pacman)
   package.list <- c("twitteR","data.table", "RCurl","plyr","tidyverse","furrr",
                     "tictoc","chron","lubridate","httr","TTR", 
-                    "grid","gridExtra", "ggridges",
+                    "grid","gridExtra", "ggridges", "iNEXT", "vegan",
                     "viridis", "broom","bbmle","ggthemes", "ggeffects")
   p_load(char = package.list, install = T)
   rm("package.list")
@@ -63,6 +63,9 @@ load_packages()
 # can be run each time or re-run just when raw data is added
 
 data_manipulation = function() {
-  
-  
+  shallow<<- read_csv(file = "https://www.dropbox.com/s/bw1klp28wx5i7lx/TB2_Compiled_Data.csv?dl=1") %>% as.data.frame() %>%
+    column_to_rownames('X1')
+  deep<<- read_csv(file = "https://www.dropbox.com/s/581r05guoyj6aoc/Patch%20Mosaic%20Master2.csv?dl=1") %>% as.data.frame() %>%
+    column_to_rownames('X1')
 }
+data_manipulation()
