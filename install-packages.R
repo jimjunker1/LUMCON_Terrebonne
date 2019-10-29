@@ -8,4 +8,8 @@ if ("pacman" %in% rownames(installed.packages()) == FALSE) install.packages("pac
 # they are important for running the livedat repository
 # OG package list: pacman::p_load(git2r, httr, semver, testthat, yaml)
 
-pacman::p_load(git2r, httr, semver, testthat, yaml)
+pacman::p_load(git2r, httr, semver, testthat, yaml, twitteR,
+               data.table, RCurl, plyr, tidyverse, furrr,
+               tictoc, chron, lubridate, httr, TTR, grid,
+               gridExtra, ggridges, iNEXT, vegan,
+               viridis, broom, bbmle, ggthemes, ggeffects)
