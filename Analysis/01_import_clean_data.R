@@ -12,7 +12,7 @@ load_packages = function(){
   #  len_freq_path = getURL("https://raw.githubusercontent.com/jimjunker1/secprod_workflow/master/len_freq/len_freq_function.R",ssl.verifypeer = FALSE)
   #  len_freq <<- eval(parse(text = len_freq_path))
   cbbPalette <<- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-  load("./object_files/ocecolors.rda")
+  # load("./object_files/ocecolors.rda")
   theme_mod <<- theme_bw() %+replace% theme(panel.grid = element_blank())
   theme_black <<- function() {theme_bw() %+replace% theme(panel.background = element_rect(fill = 'transparent', colour = NA),panel.grid = element_blank(), axis.ticks = element_line(color = 'white'),
                                                           axis.title = element_text(color = 'white'), axis.text = element_text(color = 'white'), plot.background =element_rect(fill = 'transparent', colour = NA),
@@ -67,5 +67,7 @@ data_manipulation = function() {
     column_to_rownames('X1')
   deep<<- read_csv(file = "https://www.dropbox.com/s/581r05guoyj6aoc/Patch%20Mosaic%20Master2.csv?dl=1") %>% as.data.frame() %>%
     column_to_rownames('X1')
+  site_list<<-read_csv(file ="https://www.dropbox.com/s/fmahl3dc34ss33x/terrebonne_site_master.csv?dl=1") %>% as.data.frame()
 }
 data_manipulation()
+
