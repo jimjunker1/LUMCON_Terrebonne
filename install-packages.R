@@ -13,3 +13,5 @@ pacman::p_load(git2r, httr, semver, testthat, yaml, twitteR,
                tictoc, chron, lubridate, httr, TTR, grid,
                gridExtra, ggridges, iNEXT, vegan,
                viridis, broom, bbmle, ggthemes, ggeffects)
+
+pacman::p_load_gh("jimjunker1/junkR")
