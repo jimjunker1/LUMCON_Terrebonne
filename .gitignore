@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # History files
 .Rhistory
 .Rapp.history
@@ -35,4 +34,7 @@ vignettes/*.pdf
 
 #Custom view
 .DS_Store
->>>>>>> TERREBONNE_workflow/master
+
+#field photos
+*.jpg
+*.JPG

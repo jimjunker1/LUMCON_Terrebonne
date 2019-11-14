@@ -68,6 +68,11 @@ data_manipulation = function() {
   deep<<- read_csv(file = "https://www.dropbox.com/s/581r05guoyj6aoc/Patch%20Mosaic%20Master2.csv?dl=1") %>% as.data.frame() %>%
     column_to_rownames('X1')
   site_list<<-read_csv(file ="https://www.dropbox.com/s/fmahl3dc34ss33x/terrebonne_site_master.csv?dl=1") %>% as.data.frame()
+  TB_2018_core_meta = read_csv(file = "./data/metadata/TB_2018_Core-Metadata.csv")
+  TB_2019_core_meta = read_csv(file = "./data/metadata/TB_2019_Core-Metadata.csv")
+  
 }
 data_manipulation()
+theme_set(theme_mod)
+
 

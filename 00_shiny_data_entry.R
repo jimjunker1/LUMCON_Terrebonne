@@ -1,6 +1,7 @@
 ## data for Shiny app to 
 site_list = c("TB2A","TB2B","TB2C",
-              "TB3A","TB3V","TB3C")
+              "TB3A","TB3V","TB3C",
+              "TB4A","TB4B","TB4C")
 
 
 
