@@ -15,3 +15,5 @@ pacman::p_load(git2r, httr, semver, testthat, yaml, data.table,
                viridis, broom, bbmle, ggthemes, ggeffects)
 
 pacman::p_load_gh("jimjunker1/junkR")
+
+theme_mod <<- theme_bw() %+replace% theme(panel.grid = element_blank())
