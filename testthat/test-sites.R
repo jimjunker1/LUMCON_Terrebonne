@@ -1,4 +1,5 @@
 library(testthat)
+library(tidyverse)
 context("checks that input sites are valid")
 site_list<-read_csv(file ="https://www.dropbox.com/s/fmahl3dc34ss33x/terrebonne_site_master.csv?dl=1") %>% as.data.frame()
 TB_2018_core_meta<-read_csv(file = "./data/metadata/TB_2018_Core-Metadata.csv", 
