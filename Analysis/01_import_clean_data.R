@@ -75,9 +75,7 @@ data_manipulation = function() {
                                 col_types = cols(.default = "?", Date = col_date(format = "%m/%d/%Y"), Time = "i",
                                                                                                     `Van Veen Grab` = "i", Core = "i"))
   
-  site_list <<- c("TB2A","TB2B","TB2C",
-                "TB3A","TB3V","TB3C",
-                "TB4A","TB4B","TB4C")
+
 }
 data_manipulation()
 theme_set(theme_mod)
