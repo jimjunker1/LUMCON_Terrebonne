@@ -38,3 +38,6 @@ vignettes/*.pdf
 #field photos
 *.jpg
 *.JPG
+
+#Excel files
+*.xls*
