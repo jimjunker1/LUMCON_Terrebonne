@@ -11,21 +11,23 @@ if ("pacman" %in% rownames(installed.packages()) == FALSE) install.packages("pac
 pacman::p_load(git2r, httr, semver, testthat, yaml, data.table, 
                RCurl, plyr, tidyverse, furrr, googlesheets4,
                tictoc, chron, lubridate, httr, TTR, grid,
-               gridExtra, ggridges, iNEXT, vegan,
+               gridExtra, ggridges, iNEXT, vegan, rlist, pipeR,
                viridis, broom, bbmle, ggthemes, ggeffects)
 
 pacman::p_load_gh("jimjunker1/junkR")
 
 theme_mod <<- theme_bw() %+replace% theme(panel.grid = element_blank())
 theme_set(theme_mod)
-yday_summary <<- function(data,...){
-  if("yday" %in% colnames(data)){
-    data_summ = data %>%
-      group_by(yday) %>%
-      summarise_if(is.numeric, list(~na.rm_mean(.,na.rm = TRUE), ~max(.,na.rm = TRUE), ~min(., na.rm = TRUE))) %>%
-      ungroup()
-  } ifelse{
-    
-  }
-    
-}
+find_hull <<- function(df) df[chull(df$NMDS1, df$NMDS2),]
+
+# yday_summary <<- function(data,...){
+#   if("yday" %in% colnames(data)){
+#     data_summ = data %>%
+#       group_by(yday) %>%
+#       summarise_if(is.numeric, list(~na.rm_mean(.,na.rm = TRUE), ~max(.,na.rm = TRUE), ~min(., na.rm = TRUE))) %>%
+#       ungroup()
+#   } ifelse{
+#     
+#   }
+#     
+# }
