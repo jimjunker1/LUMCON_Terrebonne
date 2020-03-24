@@ -20,6 +20,8 @@ theme_mod <<- theme_bw() %+replace% theme(panel.grid = element_blank())
 theme_set(theme_mod)
 find_hull <<- function(df) df[chull(df$NMDS1, df$NMDS2),]
 
+'%ni%' <<- Negate('%in%')
+
 # yday_summary <<- function(data,...){
 #   if("yday" %in% colnames(data)){
 #     data_summ = data %>%
