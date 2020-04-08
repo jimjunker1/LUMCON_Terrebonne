@@ -4,6 +4,18 @@ source("install-packages.R")#installs all necessary packages
 source("datascript.R")#imports data with some minor cleanup
 
 
+## summarise the monthly sampling effort
+## look at this over time
+## 
+
+## talk to murt about getting trawl locations
+##
+
+## look into Ernest community time analysis from 
+
+## automate a second state analysis to look at the correlation of distance metrics
+## then run an mds on the new correlation
+
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
   select(year, month, date_id, species_mod) %>%
@@ -91,7 +103,6 @@ common_NMDS_plot <-
   # geom_point(data = year_centroid, aes(x = NMDS1, y = NMDS2), size = 3, colour= 'black') +
   # geom_path(data = year_centroid, aes(x = NMDS1, y = NMDS2), size =1 , colour = 'darkgrey')+
   geom_point(data = common_spp.scrs, aes(x = NMDS1, y = NMDS2), size = 1.5, shape =5, colour = 'black', fill = 'grey')+
-  
   # geom_segment(data = spp.scrs, aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2), size = 1, 
   # arrow = arrow(length(unit(0.5, "cm")))) +
   ggrepel::geom_text_repel(data = common_spp.scrs, aes(x = NMDS1, y = NMDS2, label = species), fontface = "italic")+
@@ -125,7 +136,7 @@ vec.common_out_env <- envfit(TB_NMDS_common_out ~ year, TB_trawl_outlier_rm %>% 
                                                                                                                          month = factor(month)), permutations = 5000, na.rm = TRUE)
 vec.common_out_env
 
-sig.common_out_spp = unname(which(vec.common_out_spp[['vectors']]$pvals < 0.001))
+sig.common_out_spp = unname(which(vec.common_out_spp[['vectors']]$pvals < 0.0002))
 common_out_spp.scrs = vec.common_out_spp[['vectors']]$arrows[sig.common_out_spp,] %>% data.frame() %>% rownames_to_column("species")
 
 year_centroid_out = vec.common_out_env[['factors']]$centroids %>% data.frame() %>% rownames_to_column('date_id') %>% mutate(year = str_remove(date_id, 'year'))
@@ -151,10 +162,76 @@ common_out_NMDS_plot <-
   geom_point(data = common_out_spp.scrs, aes(x = NMDS1, y = NMDS2), size = 1.5, shape =5, colour = 'black', fill = 'grey')+
   # geom_segment(data = spp.scrs, aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2), size = 1, 
   # arrow = arrow(length(unit(0.5, "cm")))) +
-  ggrepel::geom_text_repel(data = common_out_spp.scrs, aes(x = NMDS1, y = NMDS2, label = species), fontface = "italic")+
+  ggrepel::geom_text_repel(data = common_out_spp.scrs, aes(x = NMDS1, y = NMDS2, label = species), fontface = "italic", alpha = 0.5)+
+  annotate('text', x = -1, y = 1, label = "stress = 0.26", hjust = 0)+
+  annotate('text', x = -1, y = 0.9, label = "distance: jaccard", hjust = 0)+
   scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])+
   scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])
 
-tiff("./figures/TB_ord_comm_outrm.tif", res = 600, height = 10, width = 19.1,units = "in", compression ="lzw")
+tiff("./figures/TB_ord_comm_outrm.tif", res = 600, height = 4.5, width = 6,units = "in", compression ="lzw")
 common_out_NMDS_plot
+dev.off()
+
+#### working with abundance data ####
+TB_trawl_taxasite_N <- TB_trawl_data %>%
+  filter(date_id %ni% c("2018-1","2007-7"))%>%
+  select(year, month, date_id, Common_name, Abundance) %>%
+  na.omit() %>%
+  group_by(year, month, date_id, Common_name) %>%
+  summarise(Abundance = sum(Abundance)) %>%
+  ungroup() %>%
+  group_by(date_id) %>%
+  mutate(rel_abun = Abundance/sum(Abundance)) %>%
+  select(year, month, date_id, Common_name, rel_abun) %>%
+  pivot_wider(names_from = Common_name, values_from = rel_abun, values_fill = list(rel_abun = 0)) %>%
+  ungroup() 
+
+#Hellinger pre-transformation of the species matrix
+TB_trawl_taxasite_Ntrans <- decostand (TB_trawl_taxasite_N %>% select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
+
+set.seed(123)
+TB_relN_NMDS <- vegan::metaMDS(TB_trawl_taxasite_Ntrans, distance = "bray", trymax = 1000, autotransform = FALSE)
+TB_relN_NMDS 
+plot(TB_relN_NMDS )
+
+TB_relN_NMDS.scrs <- as.data.frame(scores(TB_relN_NMDS, display = 'sites'))
+TB_relN_NMDS.scrs <- TB_relN_NMDS.scrs %>% bind_cols(TB_trawl_taxasite_N  %>% select(1:2)) %>% mutate(year = factor(year))
+TB_relN_NMDS.spp <- as.data.frame(scores(TB_relN_NMDS, display = "species"))
+
+set.seed(123)
+vec.spp <- envfit(TB_relN_NMDS, TB_trawl_taxasite_N  %>% select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 1000, na.rm = TRUE)
+vec.spp
+
+set.seed(123)
+vec.common_env <- envfit(TB_relN_NMDS ~ year, TB_trawl_taxasite_N %>% column_to_rownames("date_id") %>% mutate(year = factor(year),
+                                                                                                                 month = factor(month)), permutations = 1000, na.rm = TRUE)
+vec.common_env
+
+sig_spp = unname(which(vec.spp[['vectors']]$pvals < 0.001))
+spp.scrs = vec.spp[['vectors']]$arrows[sig_spp,] %>% data.frame() %>% rownames_to_column("species")
+
+hulls <- ddply(TB_relN_NMDS.scrs, "year", find_hull)
+
+year_centroid = vec.common_env[['factors']]$centroids %>% data.frame() %>% rownames_to_column('date_id') %>% mutate(year = str_remove(date_id, 'year'))
+
+relN_NMDS_plot <- 
+ggplot(TB_relN_NMDS.scrs) +
+  geom_point(data = year_centroid, aes(x = NMDS1, y = NMDS2, fill = year), shape = 21, size = 3, colour= 'black') +
+  geom_path(data = year_centroid, aes(x = NMDS1, y = NMDS2), size =1 , colour = 'darkgrey')+
+    # stat_contour(data = year_surf_out.na, aes(x = NMDS1, y = NMDS2, z = z), colour = 'grey', binwidth = 1)+
+  # geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, fill = year, colour = year), alpha = 0.3) +
+  geom_point(aes(x = NMDS1, y = NMDS2, colour = year), size = 2, alpha = 0.5)+
+  # geom_point(data = hulls, aes(x = NMDS1, y = NMDS2,  fill = year, colour = year), size = 2, shape = 21) +
+  
+  geom_point(data = spp.scrs, aes(x = NMDS1, y = NMDS2), size = 1.5, shape =5, colour = 'black', fill = 'grey')+
+  # geom_segment(data = spp.scrs, aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2), size = 1, 
+  # arrow = arrow(length(unit(0.5, "cm")))) +
+  ggrepel::geom_text_repel(data = spp.scrs, aes(x = NMDS1, y = NMDS2, label = species), fontface = "italic", alpha = 0.5)+
+  annotate('text', x = -1, y = 1, label = "stress = 0.26", hjust = 0)+
+  annotate('text', x = -1, y = 0.9, label = "distance: bray", hjust = 0)+
+  scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_relN_NMDS.scrs$year)))])+
+  scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_relN_NMDS.scrs$year)))])
+
+tiff("./figures/TB_ord_comm_relN.tif", res = 600, height = 4.5, width = 6,units = "in", compression ="lzw")
+relN_NMDS_plot
 dev.off()

@@ -9,3 +9,10 @@ TB_2018_core_summ = TB_2018_core_meta %>% group_by(Date, Station) %>% summarise(
 TB_2019_core_summ = TB_2019_core_meta %>% group_by(Date, Station) %>% summarise(core_count = n())
 
 TB_core_summ = bind_rows(TB_2018_core_summ, TB_2019_core_summ)
+
+#get number of cores processed
+shallow_summ <- shallow %>% rownames_to_column("site") %>% 
+  mutate(site = str_remove(site,"-.+")) %>%
+  group_by(site) %>%
+  summarise(N = n())
+

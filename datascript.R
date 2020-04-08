@@ -1,5 +1,4 @@
-# print("Have this script run whatever data cleaning you do")
-
+source("install-packages.R")
 # data manipulation
 
 data_import <<- function(){
@@ -70,6 +69,7 @@ data_import <<- function(){
  #                                   grepl("Bristleworm|Polychae", Species) ~ "Class: Polychaeta",
  #                                   grepl("Isopod", Species) ~ "Order: Isopoda",
  #                                   grepl("Mojarra spp.", Species, ignore.case = TRUE) ~ "Family: Gerreidae, Mojarra spp.",
+                                     grepl("Croaker", Species, ignore.case = TRUE) ~ ""
  #                                   TRUE ~ NA_character_),
  #           species_mod = if_else(is.na(species_mod), Species, species_mod),
  #           species_mod = str_replace(species_mod, "F. ", "Family: "),
@@ -195,5 +195,9 @@ data_import <<- function(){
  #           date_id = paste0(as.character(year),"-",as.character(month)))
   TB_trawl_data <<- readRDS(file = "./data/TB_trawl_data.rds")
   # load(ocecolors)
-}
+  
+  # working with bird data
+ # ebird_data <<- read_ebd("./data/ebd_US-LA_relFeb-2020/ebd_US-LA_relFeb-2020.txt") %>%
+ #   auk_filter
+  }
 data_import()

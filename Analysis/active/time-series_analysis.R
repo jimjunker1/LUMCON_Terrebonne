@@ -16,3 +16,7 @@ do_summ <- do_df %>%
   summarise_at(vars(do_mg_L), list(~na.rm_mean(.,na.rm = TRUE), ~max(.,na.rm = TRUE), ~min(., na.rm = TRUE))) %>%
   ungroup() %>%
   mutate(DATE = as.Date(yday-1, origin = "2020-01-01"))
+
+ggplot(hydro_df, aes(x = time, y = sal_psu)) + geom_line()
+
+ggplot(hydro_df, aes(x = time, y = temp_F)) + geom_line()

@@ -21,6 +21,9 @@
 vignettes/*.html
 vignettes/*.pdf
 
+# eBird large data set
+data/ebd_US-LA_relFeb-2020/
+
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
 
