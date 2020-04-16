@@ -132,7 +132,7 @@ vec.common_out_spp <- envfit(TB_NMDS_common_out, TB_trawl_outlier_rm %>% select(
 vec.common_out_spp
 
 set.seed(123)
-vec.common_out_env <- envfit(TB_NMDS_common_out ~ year, TB_trawl_outlier_rm %>% column_to_rownames("date_id") %>% mutate(year = factor(year),
+vec.common_out_env <- envfit(TB_NMDS_common_out ~ year+month, TB_trawl_outlier_rm %>% column_to_rownames("date_id") %>% mutate(year = factor(year),
                                                                                                                          month = factor(month)), permutations = 5000, na.rm = TRUE)
 vec.common_out_env
 
@@ -152,7 +152,7 @@ year_surf_out.na = as.data.frame(na.omit(year_surf_out.mite))
 hulls <- ddply(TB_NMDS_common_out.scrs, "year", find_hull)
 
 common_out_NMDS_plot <-
-  ggplot(TB_NMDS_common_out.scrs) +
+  ggplot(TB_NMDS_common_out.scrs %>% select(-month)) +
   # stat_contour(data = year_surf_out.na, aes(x = NMDS1, y = NMDS2, z = z), colour = 'grey', binwidth = 1)+
   # geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, fill = year, colour = year), alpha = 0.3) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = year), size = 2)+

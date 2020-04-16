@@ -47,7 +47,7 @@ data_import <<- function(){
 #     TB_trawl_list[[tab]] <- sheets_read(TB_trawl_meta[['spreadsheet_id']], sheet = tab, col_types = "T?d", range = cell_cols("A:C"))
 #   }
 #   TB_trawl_data <- bind_rows(TB_trawl_list)
-#   
+# 
 # ##### Data entry fixes ####
 #    TB_trawl_data <- TB_trawl_data %>%
 #     filter(!is.na(Species)) %>%
@@ -129,7 +129,7 @@ data_import <<- function(){
 #                    c("Stellifer lanceolata"),
 #                    c("Sygnathus scovelli"),
 #                    c("Urophysis floridanus")
-#                    
+# 
 #   )
 #    good_names = list("Ariopsis felis/Bagre marinus",
 #                     "Anchoa mitchilli",
@@ -159,7 +159,7 @@ data_import <<- function(){
 #   )
 #    keyval <- setNames(rep(good_names, lengths(bad_names)), unlist(bad_names))
 #    # unique(levels(as.factor(TB_trawl_data$species_mod)))
-#  
+# 
 #    # coordinate common names for species either: w/ no common name in data or common name errors
 #   species_names = list(c("Class: Ophiuroidea"),
 #                        c("Class: Scyphozoa"),
@@ -242,3 +242,4 @@ data_import <<- function(){
  #   auk_bbox(bbox = c(-90.727, 29.122, -90.58, 29.43))
   }
 data_import()
+print("Have this script run whatever data cleaning you do")
