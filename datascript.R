@@ -6,6 +6,10 @@ data_import <<- function(){
   temp_files <- lapply(temp_paths, read_csv, skip = 1,
                        col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
   
+  roundUP <<- function(x,to=10){
+    to*(x%/%to + as.logical(x%%to))
+  }
+  
   temp_df <<- bind_rows(temp_files) %>%
     rename(time = 'TS', temp_F = 'F') %>%
     mutate(yday = yday(time))
