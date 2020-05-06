@@ -10,6 +10,8 @@ data_import <<- function(){
     to*(x%/%to + as.logical(x%%to))
   }
   
+  tempF_to_C <<- function(F){(5/9)*(F-32)}
+  
   temp_df <<- bind_rows(temp_files) %>%
     rename(time = 'TS', temp_F = 'F') %>%
     mutate(yday = yday(time))

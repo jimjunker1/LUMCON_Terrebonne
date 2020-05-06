@@ -124,7 +124,7 @@ TB_NMDS_common_out
 plot(TB_NMDS_common_out)
 
 TB_NMDS_common_out.scrs <- as.data.frame(scores(TB_NMDS_common_out, display = 'sites'))
-TB_NMDS_common_out.scrs <- TB_NMDS_common_out.scrs %>% bind_cols(TB_trawl_outlier_rm %>% select(1:2)) %>% mutate(year = factor(year))
+TB_NMDS_common_out.scrs <- TB_NMDS_common_out.scrs %>% bind_cols(TB_trawl_outlier_rm %>% select(1:2)) %>% mutate(year = factor(year), month = factor(month))
 TB_NMDS_common_out.spp <- as.data.frame(scores(TB_NMDS_common_out, display = "species"))
 
 set.seed(123)
@@ -139,7 +139,14 @@ vec.common_out_env
 sig.common_out_spp = unname(which(vec.common_out_spp[['vectors']]$pvals < 0.0002))
 common_out_spp.scrs = vec.common_out_spp[['vectors']]$arrows[sig.common_out_spp,] %>% data.frame() %>% rownames_to_column("species")
 
-year_centroid_out = vec.common_out_env[['factors']]$centroids %>% data.frame() %>% rownames_to_column('date_id') %>% mutate(year = str_remove(date_id, 'year'))
+year_centroid_out = vec.common_out_env[['factors']]$centroids %>% data.frame %>% 
+  rownames_to_column('date_id') %>% filter(grepl("year", date_id, ignore.case = TRUE)) %>%
+                                             mutate(year = str_remove(date_id, 'year'))
+
+month_centroid_out = vec.common_out_env[['factors']]$centroids %>% data.frame %>% 
+  rownames_to_column("date_id") %>% filter(grepl("month", date_id, ignore.case = TRUE)) %>% 
+  mutate( month = str_remove(date_id, "month"))
+
 ## create an environmental surface of year over the 
 year_surf_out = ordisurf(TB_NMDS_common_out ~ as.numeric(year), data  = TB_trawl_outlier_rm %>% column_to_rownames("date_id") %>% mutate(year = factor(year),
                                                                                                                                          month = factor(month)), na.rm = TRUE)
@@ -149,9 +156,27 @@ year_surf_out.mite$z = as.vector(year_surf_out.grid$z)
 year_surf_out.na = as.data.frame(na.omit(year_surf_out.mite))
 
 
-hulls <- ddply(TB_NMDS_common_out.scrs, "year", find_hull)
-
-common_out_NMDS_plot <-
+yr_hulls <- ddply(TB_NMDS_common_out.scrs, "year", find_hull)
+mth_hulls <- ddply(TB_NMDS_common_out.scrs, "month", find_hull)
+# yr_common_out_NMDS_plot <-
+  ggplot(TB_NMDS_common_out.scrs %>% select(-month))+
+  geom_point(aes(x = NMDS1, y = NMDS2, colour = year), size = 2) +
+  geom_point(data = year_centroid_out, aes(x = NMDS1, y = NMDS2, fill = year), shape = 21, size = 3, colour = "black") +
+    geom_path(data = year_centroid_out, aes(x = NMDS1, y = NMDS2), size =1 , colour = 'darkgrey')+
+  scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])+
+  scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])
+  
+    
+#mnth_common_out_NMDS_plot <-
+  ggplot(TB_NMDS_common_out.scrs %>% select(-year))+
+    geom_point(aes( x= NMDS1, y = NMDS2, colour = month), size = 2) +
+    geom_point(data = month_centroid_out, aes(x = NMDS1, y = NMDS2, fill = month), shape = 21, size = 3, colour = "black") +
+    geom_point(data = month_centroid_out, aes(x = NMDS1, y = NMDS2), size = 1, colour = "darkgrey") #+
+    scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])+
+    scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])
+    
+  
+  common_out_NMDS_plot <-
   ggplot(TB_NMDS_common_out.scrs %>% select(-month)) +
   # stat_contour(data = year_surf_out.na, aes(x = NMDS1, y = NMDS2, z = z), colour = 'grey', binwidth = 1)+
   # geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, fill = year, colour = year), alpha = 0.3) +
@@ -164,9 +189,9 @@ common_out_NMDS_plot <-
   # arrow = arrow(length(unit(0.5, "cm")))) +
   ggrepel::geom_text_repel(data = common_out_spp.scrs, aes(x = NMDS1, y = NMDS2, label = species), fontface = "italic", alpha = 0.5)+
   annotate('text', x = -1, y = 1, label = "stress = 0.26", hjust = 0)+
-  annotate('text', x = -1, y = 0.9, label = "distance: jaccard", hjust = 0)+
-  scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])+
-  scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])
+  annotate('text', x = -1, y = 0.9, label = "distance: jaccard", hjust = 0)#+
+  # scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])+
+  # scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS_common_out.scrs$year)))])
 
 tiff("./figures/TB_ord_comm_outrm.tif", res = 600, height = 4.5, width = 6,units = "in", compression ="lzw")
 common_out_NMDS_plot

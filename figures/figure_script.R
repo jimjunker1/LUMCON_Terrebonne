@@ -3,6 +3,7 @@ TB_core_day = TB_core_summ %>%
   mutate(yday = yday(Date)) %>%
   group_by(yday) %>%
   mutate(day = as.Date(yday-1,  origin = "2020-01-01"))
+
 hydro_plot = ggplot(hydro_summ, aes(x = DATE)) + 
   geom_line(aes(y = temp_C_na.rm_mean), colour = 'blue', size = 1.5)+
   geom_line(aes(y = sal_psu_na.rm_mean), colour = 'lightblue', size = 1.5)+

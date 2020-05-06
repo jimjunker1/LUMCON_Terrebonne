@@ -20,3 +20,10 @@ do_summ <- do_df %>%
 ggplot(hydro_df, aes(x = time, y = sal_psu)) + geom_line()
 
 ggplot(hydro_df, aes(x = time, y = temp_F)) + geom_line()
+
+env_long <- hydro_df %>% select(-yday, -temp_F) %>% bind_rows(temp_df %>% mutate(temp_C = tempF_to_C(temp_F)) %>% select(-yday, -temp_F)) %>%
+  full_join(do_df %>% select(-yday)) %>%
+  # full_join(temp_df %>% mutate(temp_C = tempF_to_C(temp_F))%>% select(-yday, - temp_F), all = TRUE) %>%
+  pivot_longer(cols = temp_C:do_mg_L, names_to = "env_var", values_to = "value")
+
+source("./figures/env_facet_plot.R");env_plot()
