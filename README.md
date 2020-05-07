@@ -1,9 +1,24 @@
-# LUMCON_Terrebonne
-Data directory for the LUMCON Terrebone bay project
-=======
-[![Build Status](https://travis-ci.com/jimjunker1/LUMCON_Terrebonne.svg?token=z5jM2eggTy3Faxh78nzo&branch=master)](https://travis-ci.com/jimjunker1/LUMCON_Terrebonne)
-[![License](http://i.creativecommons.org/p/zero/1.0/88x31.png)](https://github.com/jimjunker1/LUMCON_Terrebonne/blob/master/LICENSE)
+Terrebonne Project Summary
+================
 
-# LUMCON_Terrebonne
+*insert terrebonne image here*
 
-## Some Thoughts on Security
+This document summarizes data within Terrebonne Bay, Louisiana (*lat.
+long.*) collected by Louisiana Universities Marine Consortium (LUMCON).
+
+# Metadata summary
+
+*data structure*
+
+## Sampling locations map
+
+*insert sampling locations, i.e. trawls, here*
+
+# Environmental Data
+
+A suite of environmental data have been collected through
+<a href="https://lumcon.edu/environmental-monitoring/" target="_blank">LUMCON’s
+environmental monitoring program</a> over the course of the study
+period. These variables include:
+
+  - Water Temperature

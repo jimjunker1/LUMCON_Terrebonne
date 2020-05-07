@@ -13,25 +13,25 @@ data_import <<- function(){
   tempF_to_C <<- function(F){(5/9)*(F-32)}
   
   temp_df <<- bind_rows(temp_files) %>%
-    rename(time = 'TS', temp_F = 'F') %>%
-    mutate(yday = yday(time))
+    rename(datetime = 'TS', temp_F = 'F') %>%
+    mutate(yday = yday(datetime))
   
   do_paths <- list.files(path = "./data/", "*DO_*", full.names = TRUE)
   do_files <- lapply(do_paths, read_csv, skip = 1,
                      col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
   
   do_df <<- bind_rows(do_files) %>%
-    rename(time = 'TS', do_mg_L = 'mg L') %>%
-    mutate(yday = yday(time))
+    rename(datetime = 'TS', do_mg_L = 'mg L') %>%
+    mutate(yday = yday(datetime))
   
   hydro_paths <- list.files(path = "./data/", "hydro{1}.*.csv", full.names= TRUE)
   hydro_files <- lapply(hydro_paths, read_csv, col_type = cols(ArrayID = col_skip(), Year = col_skip(), JDay= col_skip(),
                                                                X4 = col_skip(), X5 = col_skip(), X6 = col_skip(), Time = col_skip(), X8 = col_skip(), `Date/Time` = col_character(),
                                                                DO = col_skip(), Value4 = col_double(), Depth = col_skip(), `Depth feet` = col_skip()))
   hydro_df <<- bind_rows(hydro_files) %>%
-    rename(time = 'Date/Time', temp_C = 'Temp', temp_F = 'Water Temp F', spCon_uS_cm = 'Value4', sal_psu = 'Sal') %>%
-    mutate(time = parse_date_time(time, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
-           yday = yday(time))
+    rename(datetime = 'Date/Time', temp_C = 'Temp', temp_F = 'Water Temp F', spCon_uS_cm = 'Value4', sal_psu = 'Sal') %>%
+    mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
+           yday = yday(datetime))
   
   shallow<<- read_csv(file = "https://www.dropbox.com/s/bw1klp28wx5i7lx/TB2_Compiled_Data.csv?dl=1") %>% as.data.frame() %>%
     column_to_rownames('X1')

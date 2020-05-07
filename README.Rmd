@@ -1,0 +1,31 @@
+---
+title: 'Terrebonne Project Summary'
+author: 
+date: 
+output: 
+  github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*insert terrebonne image here*
+
+This document summarizes data within Terrebonne Bay, Louisiana (*lat. long.*) collected by Louisiana Universities Marine Consortium (LUMCON).
+
+# Metadata summary
+
+*data structure*
+
+## Sampling locations map
+*insert sampling locations, i.e. trawls, here*
+
+# Environmental Data
+
+A suite of environmental data have been collected through <a href="https://lumcon.edu/environmental-monitoring/" target="_blank">LUMCON's environmental monitoring program</a> over the course of the study period. These variables include:
+
+- Water Temperature
+- Salinity
+- Specific Conductivity
+

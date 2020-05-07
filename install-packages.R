@@ -8,7 +8,7 @@ if ("pacman" %in% rownames(installed.packages()) == FALSE) install.packages("pac
 # they are important for running the livedat repository
 # OG package list: pacman::p_load(git2r, httr, semver, testthat, yaml)
 
-pacman::p_load(git2r, httr, semver, testthat, yaml, data.table, 
+pacman::p_load(git2r, httr, semver, testthat, yaml, EML, data.table, 
                RCurl, plyr, tidyverse, furrr, googlesheets4,
                tictoc, chron, lubridate, httr, TTR, grid,
                gridExtra, ggridges, iNEXT, vegan, rlist, pipeR,
@@ -17,7 +17,7 @@ pacman::p_load(git2r, httr, semver, testthat, yaml, data.table,
 
 pacman::p_load_gh(c("jimjunker1/junkR"))#, "ropensci/rfishbase"))
 
-theme_mod <<- theme_bw() %+replace% theme(panel.grid = element_blank())
+# theme_mod <<- theme_bw() %+replace% theme(panel.grid = element_blank())
 theme_set(theme_mod)
 find_hull <<- function(df) df[chull(df$NMDS1, df$NMDS2),]
 

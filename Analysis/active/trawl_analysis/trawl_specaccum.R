@@ -59,23 +59,45 @@ TB_time_df <- TB_time_accum %>%
   mutate(data_type = 'continuous') %>%
   bind_rows(TB_annual_accum %>% mutate(data_type = "annual"))
 
-source("./figures/diversity_time_plots.R")
-
-
 #create moving jaccard calc by year-month
+# create a dataframe for time series of distance compared to first sampling 
+unique_combinations <- expand.grid(date_A = unique(levels(as.factor(TB_trawl_commonsite$date_id))), 
+                                   Date = unique(levels(as.factor(TB_trawl_commonsite$date_id)))) %>%
+  filter(date_A == as.character(min(TB_trawl_commonsite$date_id)))
+
+TB_date_jaccard = vegdist((TB_trawl_commonsite %>% select(-year, -month) %>% 
+                             column_to_rownames("date_id")), method = "jaccard") %>%
+  as.matrix %>% as.data.frame %>% rownames_to_column("date_A") %>% 
+  pivot_longer(cols = 2:dim(.)[2], names_to = "Date", values_to = "jaccard") %>%
+  inner_join(unique_combinations) %>% filter(date_A != date_B) %>% 
+  mutate(Date = gsub('^([0-9]{4}-)([0-9]{1})$', '\\10\\2', Date),
+         Date = as.Date(paste0(Date,"-01"), format = "%Y-%m-%d"))
+
+ggplot(Tb_date_jaccard, aes(x = Date, y = jaccard)) + 
+  geom_point() +
+  geom_line() +
+  scale_y_continuous()
+
+# partitioning beta diversity metrics from trawl dataset
+# create named list of each sampling date
+named_group_split <- function(.tbl, ...) {
+  grouped <- group_by(.tbl, ...)
+  names <- rlang::eval_bare(rlang::expr(paste(!!!group_keys(grouped), sep = " / ")))
+
+  grouped %>%
+    group_split() %>%
+    rlang::set_names(names)
+}
 
 date_lists = TB_trawl_commonsite %>%
-  group_split(date_id)
+  named_group_split(date_id) %>%
+  map(., ~.x %>% select(-year, -month,-date_id))
 
-unique_comb
+beta_lists <- lapply(date_lists, function(x,r){ betapart::beta.temp(x = x, y = r, index.family = 'jaccard')}, x = date_lists[[1]]) 
+beta_dates <- gsub('^([0-9]{4}-)([0-9]{1})$', '\\10\\2', names(beta_lists))
+beta_df <- bind_rows(beta_lists) %>% mutate(Date = as.Date(paste0(beta_dates,"-01"), "%Y-%m-%d")) %>% #select(Date, everything()) %>%
+  pivot_longer(-Date, names_to = "partition", values_to = "value")
+                       
+source("./figures/diversity_time_plots.R")
 
-
-ggplot(TB_time_df, aes(x = Date, y = richness, group = data_type)) +
-  geom_point(aes(colour = data_type),size = 3) + 
-  geom_line(aes(colour = data_type),size = 2) +
-  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
-  scale_y_continuous(name = "Species Richness")+
-  scale_colour_manual(name = "", values = viridis(4)[c(2,3)]) +
-  theme(legend.position = c(0.1,0.8), axis.title.x = element_blank())
-
-
+  

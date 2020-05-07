@@ -1,0 +1,38 @@
+---
+title: 'Trawl Summary'
+author: "Jim Junker"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+      keep_md: true
+      toc: true
+      toc_float: true
+      toc_depth: 3
+      numbered_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(vegan)
+library(betapart)
+
+TB_trawl_data <- readRDS("../data/TB_trawl_data.rds")
+```
+
+#TERREBONNE BAY TRAWL ANALYSIS SUMMARY {.unlisted .unnumbered}
+
+*insert terrebonne image here*
+
+This document summarizes trawl catch data within Terrebonne Bay, Louisiana (*lat. long.*) conducted by the Education Department of the Louisiana Universities Marine Consortium (LUMCON) from `r paste0(unique(min(TB_trawl_data$year))," - ",unique(max(TB_trawl_data$year)))`.
+
+# Metadata summary
+
+## Sampling locations map
+*insert sampling locations, i.e. trawls, here*
+
+# Environmental Data
+
+A suite of environmental data have been collected through <a href="https://lumcon.edu/environmental-monitoring/" target="_blank">LUMCON's environmental monitoring program</a> over the course of the study period. These variables include:
+
+- Water Temperature
