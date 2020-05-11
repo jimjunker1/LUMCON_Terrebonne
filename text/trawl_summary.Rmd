@@ -2,6 +2,11 @@
 title: 'Trawl Summary'
 author: "Jim Junker"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
+knit: (function(inputFile, encoding) { 
+      out_dir <- '../docs';
+      rmarkdown::render(inputFile,
+                        encoding=encoding, 
+                        output_file=file.path(dirname(inputFile), out_dir, 'trawl_summary.html')) })
 output: 
   html_document:
       keep_md: true
@@ -17,6 +22,9 @@ library(tidyverse)
 library(vegan)
 library(betapart)
 library(lubridate)
+library(viridis)
+
+'%ni%' <- Negate('%in%')
 
 TB_trawl_data <- readRDS("../data/TB_trawl_data.rds")
 
@@ -81,7 +89,7 @@ env_long <- hydro_df %>% select(-yday, -temp_F) %>% bind_rows(temp_df %>% mutate
 
 ```
 
-These data sets range in coverage, and are being added to continuously:
+These data vary in coverage and are being updated:
 
 `r knitr::include_graphics("../figures/env_facet_plot.png")`
 
@@ -109,4 +117,80 @@ ggplot(TB_trawl_samplings, aes(x = Date, y = 0))+ geom_vline(aes(xintercept = as
 
 ```
 
+There are a lot of sampling trawls over the past decade (n = 359) and they are spread pretty consistently over the year, but with some periods of heavy sampling: 
 
+```{r month sampling events, include=TRUE, echo=FALSE}
+
+
+TB_month_hist <- TB_trawl_samplings %>%
+  mutate(month_num = lubridate::month(Date), 
+         month_name = lubridate::month(Date, label = TRUE)) 
+
+  ggplot(TB_month_hist, aes(month_num)) + geom_bar(width = 1) +
+    scale_x_continuous(breaks = seq(1,12, by = 1), labels = lubridate::month(seq(1,12,by = 1), label = TRUE)) +
+    theme_minimal() +
+    theme(axis.title = element_blank())
+  
+```
+
+## Species sampling
+
+Over the full dataset we can estimate the species accumulation by # of trawls
+
+```{r full richness curve, include = TRUE, echo=FALSE}
+
+# Full species accumulation curve (SAC)
+
+##create taxa by site matrix
+TB_trawl_commonsite <- TB_trawl_data %>%
+  select(year, month, date_id, Common_name) %>%
+  group_by(date_id, Common_name) %>%
+  distinct() %>% 
+  mutate(pres = 1) %>%
+  pivot_wider(names_from = Common_name, values_from = pres, values_fill = list(pres = 0)) %>%
+  ungroup()
+
+sp1 <- vegan::specaccum(TB_trawl_commonsite %>% select(-year, -month, -date_id))
+spp_mod.df <- data.frame(trawls = sp1[["sites"]], richness = sp1[["richness"]], richness_sd = sp1[["sd"]])
+
+ggplot(spp_mod.df, aes(x = trawls, y = richness)) + geom_path(size = 2, colour = 'red') +
+  geom_ribbon(aes(x = trawls, ymin = (richness - 1.96*richness_sd), ymax = (richness + 1.96*richness_sd)), colour = "red", fill = "red", alpha = 0.5) +
+  scale_y_continuous(name = expression(Sigma~"species"), breaks = seq(0,roundUP(max(spp_mod.df$richness), to = 10), by = 10), labels = seq(0,roundUP(max(spp_mod.df$richness), to = 10), by = 10)) +
+  scale_x_continuous(name = "Trawls", breaks = seq(0,roundUP(max(spp_mod.df$trawls), to = 10), by = 20)) +
+  theme_minimal()
+
+```
+
+And by the trawls within each year to get at the differences in sampling effort (assuming each trawl is the same). This suggests there are certain years (or trawl locations):
+
+```{r, include = TRUE, echo = FALSE, warning=FALSE}
+## SAC for each year
+TB_trawl_commondate <- TB_trawl_data %>%
+  select(year, Date, Common_name) %>%
+  group_by(Date, Common_name) %>%
+  distinct() %>% 
+  mutate(pres = 1) %>%
+  pivot_wider(names_from = Common_name, values_from = pres, values_fill = list(pres = 0)) %>%
+  ungroup()
+
+
+TB_trawl_taxasite_yr <- TB_trawl_commondate %>%
+  group_split(year) %>%
+  map(., ~.x %>%  select(-year, -Date) %>% vegan::specaccum(.) %>%
+       rlist::list.remove(names(.) %ni% c("sites","richness","sd")) %>%
+        bind_cols) %>% 
+  map2(., TB_trawl_commondate %>% group_split(year), ~..1 %>% 
+         mutate(year = ..2 %>% select(year) %>% unlist %>% as.factor)) %>%
+  bind_rows
+
+ggplot(TB_trawl_taxasite_yr, aes(x = sites, y = richness, group = year, colour = year)) +
+  geom_path(size = 1.5) +# geom_ribbon(aes(x = sites, ymin = (richness - 1.96*sd), ymax = (richness + 1.96*sd), fill = year), alpha = 0.2) +
+  scale_y_continuous(name = expression(Sigma~"species"),breaks = seq(0, roundUP(max(TB_trawl_taxasite_yr$richness), to = 10), by = 10), labels = seq(0, roundUP(max(TB_trawl_taxasite_yr$richness), to = 10), by = 10)) +
+  scale_x_continuous(name = "Trawls", breaks = seq(0, roundUP(max(TB_trawl_taxasite_yr$sites), to = 10), by = 5)) +
+  scale_colour_viridis(discrete = TRUE) + 
+  scale_fill_viridis(discrete = TRUE) +
+  theme_minimal()
+
+```
+
+Squinting this suggests that, generally, there might be increasing # of species more broadly. 
