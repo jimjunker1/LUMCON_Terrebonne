@@ -16,8 +16,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(vegan)
 library(betapart)
+library(lubridate)
 
 TB_trawl_data <- readRDS("../data/TB_trawl_data.rds")
+
 ```
 
 #TERREBONNE BAY TRAWL ANALYSIS SUMMARY {.unlisted .unnumbered}
@@ -29,10 +31,82 @@ This document summarizes trawl catch data within Terrebonne Bay, Louisiana (*lat
 # Metadata summary
 
 ## Sampling locations map
-*insert sampling locations, i.e. trawls, here*
+*insert sampling locations, i.e. trawls start and stop, here*
 
 # Environmental Data
 
 A suite of environmental data have been collected through <a href="https://lumcon.edu/environmental-monitoring/" target="_blank">LUMCON's environmental monitoring program</a> over the course of the study period. These variables include:
 
 - Water Temperature
+- Salinity
+- Specific conductivity
+- Dissolved Oxygen
+
+```{r import environmental data, include = FALSE}
+
+  temp_paths <- list.files(path = "../data/", "*temp_*", full.names = TRUE)
+  temp_files <- lapply(temp_paths, read_csv, skip = 1,
+                       col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
+  
+  roundUP <- function(x,to=10){
+    to*(x%/%to + as.logical(x%%to))
+  }
+  
+  tempF_to_C <- function(F){(5/9)*(F-32)}
+  
+  temp_df <- bind_rows(temp_files) %>%
+    rename(datetime = 'TS', temp_F = 'F') %>%
+    mutate(yday = yday(datetime))
+  
+  do_paths <- list.files(path = "../data/", "*DO_*", full.names = TRUE)
+  do_files <- lapply(do_paths, read_csv, skip = 1,
+                     col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
+  
+  do_df <- bind_rows(do_files) %>%
+    rename(datetime = 'TS', do_mg_L = 'mg L') %>%
+    mutate(yday = yday(datetime))
+  
+  hydro_paths <- list.files(path = "../data/", "hydro{1}.*.csv", full.names= TRUE)
+  hydro_files <- lapply(hydro_paths, read_csv, col_type = cols(ArrayID = col_skip(), Year = col_skip(), JDay= col_skip(),
+                                                               X4 = col_skip(), X5 = col_skip(), X6 = col_skip(), Time = col_skip(), X8 = col_skip(), `Date/Time` = col_character(),
+                                                               DO = col_skip(), Value4 = col_double(), Depth = col_skip(), `Depth feet` = col_skip()))
+  hydro_df <- bind_rows(hydro_files) %>%
+    rename(datetime = 'Date/Time', temp_C = 'Temp', temp_F = 'Water Temp F', spCon_uS_cm = 'Value4', sal_psu = 'Sal') %>%
+    mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
+           yday = yday(datetime))
+env_long <- hydro_df %>% select(-yday, -temp_F) %>% bind_rows(temp_df %>% mutate(temp_C = tempF_to_C(temp_F)) %>% select(-yday, -temp_F)) %>%
+  full_join(do_df %>% select(-yday)) %>%
+  # full_join(temp_df %>% mutate(temp_C = tempF_to_C(temp_F))%>% select(-yday, - temp_F), all = TRUE) %>%
+  pivot_longer(cols = temp_C:do_mg_L, names_to = "env_var", values_to = "value")
+
+```
+
+These data sets range in coverage, and are being added to continuously:
+
+`r knitr::include_graphics("../figures/env_facet_plot.png")`
+
+More data will be necessary to fully complete analyses, but this shows the emerging environmental picture.
+
+# Biological Data
+
+The education department has been conducting trawl surveys pretty consistently since 2007. These sampling dates are pretty evenly distributed throughout the year
+
+## Sampling Events
+
+```{r sampling events, include = TRUE, echo = FALSE}
+
+TB_trawl_samplings <- TB_trawl_data %>% select(Date) %>%
+  group_by(Date) %>% distinct %>% ungroup %>%
+  mutate(Date = as.Date(Date), 
+         Date_num = as.numeric(Date))
+
+date_breaks = as.numeric(as.Date(paste0(seq(2007,2020, by = 1),"-01-01")))
+date_labels = year(as.Date(date_breaks, origin = "1970-01-01"))
+
+ggplot(TB_trawl_samplings, aes(x = Date, y = 0))+ geom_vline(aes(xintercept = as.numeric(ymd(Date)))) +
+  scale_x_continuous(breaks = date_breaks, labels = date_labels) + theme_minimal() +
+  theme(axis.title = element_blank()) 
+
+```
+
+

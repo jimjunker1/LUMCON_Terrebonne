@@ -27,3 +27,5 @@ env_long <- hydro_df %>% select(-yday, -temp_F) %>% bind_rows(temp_df %>% mutate
   pivot_longer(cols = temp_C:do_mg_L, names_to = "env_var", values_to = "value")
 
 source("./figures/env_facet_plot.R");env_plot()
+
+
