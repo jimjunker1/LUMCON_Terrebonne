@@ -21,3 +21,36 @@ TB_month_hist <- TB_trawl_samplings %>%
     theme_minimal() +
     theme(axis.title = element_blank())
   
+  
+#### Combine relative abundance by year and plot how this ####
+  
+  TB_ann_relN = TB_trawl_data %>% select(year, Common_name, Abundance) %>% na.omit %>%
+    group_by(year, Common_name) %>%
+    summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+    mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE)) %>%
+    left_join(TB_trawl_data %>% 
+                # Turn filter back on to use 2007 as reference year
+                # filter(year == 2007) %>%
+                na.omit %>%
+                group_by(Common_name) %>%
+                summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+                mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE)) %>%
+                mutate(rank = dense_rank(desc(rel_N))) %>%
+                select(Common_name, rank))
+  
+  TB_trawl_data %>% filter(year == 2007) %>%
+    group_by(Common_name) %>%
+    summarise(Abundance = sum(Abundance, na.rm = TRUE))
+    
+  TB_relN_ann = TB_trawl_data %>% select(year, Common_name, Abundance) %>% na.omit %>%
+    group_by(year, Common_name) %>%
+    summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+    mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE),
+           rank = dense_rank(desc(rel_N))) %>%
+    ungroup() %>%  mutate(year = as.factor(year))
+# widen out data
+  
+  TB_relN_ann_wide <- TB_relN_ann %>%
+    pivot_wider(id_cols = c(year,Common_name), names_from = year, values_from = rank) %>%
+    group_by(Common_name)
+  

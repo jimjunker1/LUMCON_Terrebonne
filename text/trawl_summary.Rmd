@@ -174,7 +174,6 @@ TB_trawl_commondate <- TB_trawl_data %>%
   pivot_wider(names_from = Common_name, values_from = pres, values_fill = list(pres = 0)) %>%
   ungroup()
 
-
 TB_trawl_taxasite_yr <- TB_trawl_commondate %>%
   group_split(year) %>%
   map(., ~.x %>%  select(-year, -Date) %>% vegan::specaccum(.) %>%
@@ -196,9 +195,9 @@ ggplot(TB_trawl_taxasite_yr, aes(x = sites, y = richness, group = year, colour =
 
 Squinting this suggests that, generally, there might be increasing # of species based on the species-effort curves. The 'brighter' colors appear to be higher. I think we still need to dig in further to see if this is due to changing taxonomic resolution across the sampling period or an actual biological signal.
 
-## Beta diversity
+## Species diversity
 
-We can start to break this down further, and the inference that species richness might be increasing over time has some support (again, not sure yet if this is real or methodological). 
+We can start to break this down further, and the inference that species richness might be increasing over time has some support (again, not sure yet if this is real or methodological). 2020 is an obvious outlier here because we have only conducted 3 trawls (bummer) and I don't know what that little blip is in 2014. One weird instance where the code is mischaracterizing something. 
 
 ```{r beta partition, include = TRUE, echo = FALSE, warning = FALSE, message= FALSE, fig.height= 8}
 
@@ -287,5 +286,151 @@ grid.arrange(rich_time, jaccard_time, ncol = 1)
  
 The bottom panel can use a bit more explanation. This panel shows jaccard distance of each individual trawl from the initial trawl based on presence/absence data. Understanding the highlights and limitations of the analysis can give us a better picture of what is going on. First, a community in flux responding to directional change, we would expect the distance to increase over time. There is maybe slight evidence of this, but a lot of noise around that signal. Further, the relative effects of species turnover is quite variable over time and seems to show a larger seasonal signal relative to any trend over the time series.
 
-Taking this further, 
+## Community changes
 
+Taking this further, we can look at how evenly species are distributed within the community. Rank-abundance plots of the community for integrated across each year show common species are always common (not surprising) and there is a lot of inter-annual variability in the less common species. Here, 'Species rank' is calculated based on the full time series and fixed. We then plot the relative abundance of each species in each year. The black line shows the global community rank-abundance relationship.
+
+```{r rank-abundance plots, include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+
+TB_ann_relN = TB_trawl_data %>% select(year, Common_name, Abundance) %>% na.omit %>%
+  group_by(year, Common_name) %>%
+  summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+  mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE)) %>%
+  left_join(TB_trawl_data %>% 
+              # Turn filter back on to use 2007 as reference year
+              # filter(year == 2007) %>%
+              na.omit %>%
+              group_by(Common_name) %>%
+              summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+              mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE)) %>%
+              mutate(rank = dense_rank(desc(rel_N))) %>%
+              select(Common_name, rank)) %>%
+  ungroup() %>%  mutate(year = as.factor(year))
+
+global_relN <- TB_trawl_data %>% 
+              # Turn filter back on to use 2007 as reference year
+              # filter(year == 2007) %>%
+              na.omit %>%
+              group_by(Common_name) %>%
+              summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+              mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE)) %>%
+              mutate(rank = dense_rank(desc(rel_N))) %>%
+              select(Common_name, rel_N, rank)
+
+ggplot(TB_ann_relN, aes(x = rank, y = log10(rel_N))) + 
+    geom_line(data = global_relN, aes(x = rank, y = log10(rel_N)), size = 2, color = "black") +
+  geom_line(aes(group = year, color = year), alpha = 0.7, size = 1.2) +
+  scale_y_continuous(name = expression(log[10]*"(Relative Abundance)"))+
+  scale_x_continuous(name = "Species Rank")+
+  scale_color_viridis(discrete = TRUE) +
+  theme_minimal()
+
+```
+
+These inter-annual trends aside, we see that evenness of the community doesn't show drastic differences among years. Sampling effort is going to explain some of this, but this also might represent some neutral (zero sum) or compensatory dynamics among species in the community.
+
+```{r annual rank-abundance, echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+
+TB_relN_ann = TB_trawl_data %>% select(year, Common_name, Abundance) %>% na.omit %>%
+  group_by(year, Common_name) %>%
+  summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+  mutate(rel_N = Abundance/sum(Abundance, na.rm = TRUE),
+         rank = dense_rank(desc(rel_N))) %>%
+  ungroup() %>%  mutate(year = as.factor(year))
+
+ggplot(TB_relN_ann, aes(x = rank, y = log10(rel_N))) + 
+  geom_line(aes(group = year, color = year), alpha = 0.6, size = 1.2) +
+   scale_y_continuous(name = expression(log[10]*"(Relative Abundance)"))+
+  scale_x_continuous(name = "Species Rank")+
+  scale_color_viridis(discrete = TRUE) +
+  theme_minimal()
+
+```
+
+We can characterize the how communities shift and the important players (i.e. those with loadings on PC1 or PC2 of the most extreme 1%). This shows there is are noticeable shifts in the community composition over the years and there appears to by directional changes with time. 
+
+```{r craig pca, include = TRUE, echo= FALSE, warning = FALSE, message=FALSE}
+# create taxa by site matrix with common names
+TB_trawl_commonsite <- TB_trawl_data %>%
+  select(year, month, date_id, Common_name) %>%
+  group_by(date_id, Common_name) %>%
+  distinct() %>% 
+  mutate(pres = 1) %>%
+  pivot_wider(names_from = Common_name, values_from = pres, values_fill = list(pres = 0)) %>%
+  ungroup()
+##addressing outlier points
+TB_trawl_outlier_rm <- TB_trawl_commonsite %>%
+  filter(date_id %ni% c("2018-1","2007-7"))
+
+### Legendre PC with Hellinger
+# Hellinger pre-transformation of the species matrix
+tb.h <- decostand (TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
+tb.h.pca <- rda(tb.h)
+tb.h.pca.summ <- summary(tb.h.pca)
+
+#pull coordinates and loadings
+TB <- data.frame(matrix(ncol=2,nrow=105, dimnames=list(NULL, c("PC1", "PC2"))))
+
+df1  <- data.frame(tb.h.pca.summ$sites[,1:2])
+TB$PC1 <- df1[,1]
+TB$PC2 <- df1[,2]
+TB$date_id <- row.names(tb.h.pca.summ$sites)
+TB <- left_join(TB, TB_trawl_outlier_rm, by=c("date_id"="date_id"))
+
+Var = factor(TB$year, levels =c("2007","2009","2010","2011",
+                                "2012","2013","2014","2015",
+                                "2016","2017","2018","2019",
+                                "2020"))
+#pull loadings
+TB.loadings  <- data.frame(tb.h.pca.summ$species[,1:2])
+TB.loadings$Species <- row.names(tb.h.pca.summ$species)
+#filtering out top species contributions
+TB.loadings.top <- TB.loadings %>%
+  filter(PC1>quantile(PC1, prob=.99) | 
+           PC1<quantile(PC1, prob=.01)| 
+           PC2>quantile(PC2, prob=.99)  | 
+           PC2<quantile(PC2, prob=.01)) 
+
+#analyses
+# tb.h.dl <- dist(tb.h)
+# pc_test<- betadisper(tb.h.dl, TB$year)
+# anova(pc_test)
+# permutest(pc_test, pairwise = TRUE)
+
+TB.centroids <- TB %>%
+  group_by(year) %>%
+  summarise(
+    meanPC1 = mean(PC1),
+    meanPC2 = mean(PC2)
+  )
+TB$year <- as.integer(TB$year)
+
+#figure
+ggplot(data = TB, aes(x=PC1, y=PC2, color=as.factor(year))) + 
+  geom_point(aes(color=as.factor(year)), size =3, alpha = 0.6)+
+  geom_path(data=TB.centroids, aes(x=meanPC1, y=meanPC2), arrow=arrow(), size=1, color="grey20")+
+  geom_text(data=TB.centroids, aes(x=meanPC1, y=meanPC2, label=year), color="grey20")+
+  ggrepel::geom_text_repel(data=TB.loadings.top, aes(x=PC1, y=PC2, label=Species), color="grey30")+
+  geom_hline(yintercept=0, linetype="dotted") +
+  geom_vline(xintercept=0, linetype="dotted") +
+  labs(color = "Year") +
+  theme_minimal() +
+  scale_colour_viridis(discrete = TRUE)
+
+```
+
+The environmental data will need to be completed further to begin to test if these changes are driven by the environment. In its absence, it might be a useful exercise to see how the composition of community traits might guide the expected patterns observed in the environment.
+
+```{r rank table, include = TRUE, echo = FALSE, warning = FALSE, message = FALSE}
+
+rank_table <- TB_relN_ann %>% group_by(Common_name) %>%
+  summarise(mean_rank = round(mean(rank),2),
+              rank_sd = round(sd(rank, na.rm = TRUE),2)) %>%
+  arrange(mean_rank) %>%
+  rename(`Common Name` = "Common_name",
+         `Mean Rank` = "mean_rank",
+         `Rank SD` = "rank_sd")
+
+knitr::kable(rank_table)
+
+```

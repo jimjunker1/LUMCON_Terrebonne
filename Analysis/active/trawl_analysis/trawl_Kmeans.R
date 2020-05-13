@@ -1,9 +1,120 @@
 #trawl K-means analysis of fish data
+# create taxa by site matrix with common names
+TB_trawl_commonsite <- TB_trawl_data %>%
+  select(year, month, date_id, Common_name) %>%
+  group_by(date_id, Common_name) %>%
+  distinct() %>% 
+  mutate(pres = 1) %>%
+  pivot_wider(names_from = Common_name, values_from = pres, values_fill = list(pres = 0)) %>%
+  ungroup()
+
+
+##addressing outlier points
+TB_trawl_outlier_rm <- TB_trawl_commonsite %>%
+  filter(date_id %ni% c("2018-1","2007-7"))
+
+###Legendre PC with Hellinger
+
+#Hellinger pre-transformation of the species matrix
+tb.h <- decostand (TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
+tb.h.pca <- rda(tb.h)
+tb.h.pca.summ <- summary(tb.h.pca)
+
+
+#pull coordinates and loadings
+TB <- data.frame(matrix(ncol=2,nrow=105, dimnames=list(NULL, c("PC1", "PC2"))))
+
+df1  <- data.frame(tb.h.pca.summ$sites[,1:2])
+TB$PC1 <- df1[,1]
+TB$PC2 <- df1[,2]
+TB$date_id <- row.names(tb.h.pca.summ$sites)
+TB <- left_join(TB, TB_trawl_outlier_rm, by=c("date_id"="date_id"))
+
+Var = factor(TB$year, levels =c("2007","2009","2010","2011",
+                                "2012","2013","2014","2015",
+                                "2016","2017","2018","2019",
+                                "2020")) # factor variable for colours
+
+
+#pull loadings
+TB.loadings  <- data.frame(tb.h.pca.summ$species[,1:2])
+TB.loadings$Species <- row.names(tb.h.pca.summ$species)
+#filtering out top species contributions
+TB.loadings.top <- TB.loadings %>%
+  filter(PC1>quantile(PC1, prob=.99) | 
+           PC1<quantile(PC1, prob=.01)| 
+           PC2>quantile(PC2, prob=.99)  | 
+           PC2<quantile(PC2, prob=.01)) 
+#analyses
+tb.h.dl <- dist(tb.h)
+pc_test<- betadisper(tb.h.dl, TB$year)
+anova(pc_test)
+permutest(pc_test, pairwise = TRUE)
+
+TB.centroids <- TB %>%
+  group_by(year) %>%
+  summarise(
+    meanPC1 = mean(PC1),
+    meanPC2 = mean(PC2)
+  )
+
+TB$year <- as.integer(TB$year)
+
+#figure
+ggplot(data = TB, aes(x=PC1, y=PC2, color=as.factor(year))) + 
+  geom_point(aes(color=as.factor(year)), cex=3)+
+  ggrepel::geom_text_repel(data=TB.loadings.top, aes(x=PC1, y=PC2, label=Species), color="grey30")+
+  geom_hline(yintercept=0, linetype="dotted") +
+  geom_vline(xintercept=0, linetype="dotted") +
+  geom_path(data=TB.centroids, aes(x=meanPC1, y=meanPC2), arrow=arrow(), size=1, color="grey20")+
+  geom_text(data=TB.centroids, aes(x=meanPC1, y=meanPC2, label=year), color="grey20")+
+  labs(color = "Year") +
+  scale_colour_viridis(discrete = TRUE)
 
 ###Cluster Analysis
 spe <- TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id")
 spe.norm <- decostand(spe, "normalize")
 spe.ch <- vegdist(spe.norm, "euc") 
+
+#single linkage
+spe.ch.single <- hclust(spe.ch, method="single")  
+plot(spe.ch.single, cex = 0.6)  
+
+#compelte linkage
+spe.ch.complete <- hclust(spe.ch, method="complete")
+plot(spe.ch.complete, cex = 0.6) 
+
+#UPGMA
+spe.ch.UPGMA <- hclust(spe.ch, method="average")
+plot(spe.ch.UPGMA, cex = 0.6)  
+
+#Centroid
+spe.ch.centroid <- hclust(spe.ch, method="centroid")
+plot(spe.ch.centroid, cex = 0.6)  
+
+#Ward's
+spe.ch.ward <- hclust(spe.ch, method="ward")
+plot(spe.ch.ward, cex = 0.6)    
+
+#final dendrogram
+spe.chwo <-reorder(spe.ch.ward, spe.ch)
+k=4
+
+plot(spe.chwo, hang=-1, xlab="4 groups", sub="", ylab="Height", 
+     main="Chord-Ward (reordered)", labels=TB$year, cex=0.6)
+
+rect.hclust(spe.chwo, k=5)
+hcd = as.dendrogram(spe.ch.ward)
+
+library(ggtree)
+
+#trying to plot with ggtree, can't get colors right
+ggtree(hcd)+
+  geom_tippoint(cex=3, color=as.factor(TB$year))+
+  geom_tiplab(angle=90, hjust=1)+
+  layout_dendrogram()+
+  TB_pallette+
+  TB_pallette2
 
 # k-means partitioning of the pre-transformed species data
 # ********************************************************
@@ -16,11 +127,12 @@ spebc.ward.g <- cutree(spe.ch.ward, k)
 table(spe.kmeans$cluster, spebc.ward.g)
 
 # k-means partitioning, 2 to 10 groups
-spe.KM.cascade <- cascadeKM(spe.norm, inf.gr=2, sup.gr=10, iter=100, 
+spe.KM.cascade <- cascadeKM(spe.norm, inf.gr=2, sup.gr=10, iter=500, 
                             criterion="ssi")
 summary(spe.KM.cascade)
 spe.KM.cascade$results
 spe.KM.cascade$partition
+plot(spe.KM.cascade, sortg = FALSE)
 plot(spe.KM.cascade, sortg=TRUE)
 
 # Reorder the sites according to the k-means result
@@ -34,7 +146,7 @@ spe[ord.KM$sites, ord.KM$species]
 # Computed on the chord distance matrix
 # *************************************
 
-require(cluster)
+library(cluster)
 
 # Choice of the number of clusters
 # Loop to compute average silhouette width for 2 to 28 clusters.
@@ -187,7 +299,7 @@ library(directlabels)
 ggplot(dominant_species, aes(x=Group, y=Rank, group=Species, color=Species))+
   geom_line()+
   geom_label(aes(label=Rank),label.size = NA, fill = "white")+
-  theme_craig()+
+  # theme_craig()+
   ylab("Year Group")+
   scale_y_reverse()+
   geom_dl(aes(label = Species), method = list(dl.trans(x = x + 0.4), "last.points", cex = 0.8))+
@@ -205,7 +317,8 @@ dominant <- unique(dominant_species$Species)
 TB_trawl_dominant <- TB_trawl_data %>% filter(Common_name %in% dominant)
 
 ggplot(TB_trawl_dominant, aes( x = Date, y = log10(Abundance), group = Common_name, colour = Common_name)) + 
-  geom_point()+geom_line() +
-  scale_colour_viridis(discrete = TRUE)+
+  geom_point(alpha = 0.4)+#geom_line() +
+  geom_smooth(method  = "loess", span = 0.5, se = FALSE)+
+  scale_colour_viridis(discrete = TRUE, option = "C")#+
   facet_grid(rows = vars(Common_name))
 

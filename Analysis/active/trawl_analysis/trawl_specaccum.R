@@ -69,11 +69,11 @@ TB_date_jaccard = vegdist((TB_trawl_commonsite %>% select(-year, -month) %>%
                              column_to_rownames("date_id")), method = "jaccard") %>%
   as.matrix %>% as.data.frame %>% rownames_to_column("date_A") %>% 
   pivot_longer(cols = 2:dim(.)[2], names_to = "Date", values_to = "jaccard") %>%
-  inner_join(unique_combinations) %>% filter(date_A != date_B) %>% 
+  inner_join(unique_combinations) %>% filter(date_A != Date) %>% 
   mutate(Date = gsub('^([0-9]{4}-)([0-9]{1})$', '\\10\\2', Date),
          Date = as.Date(paste0(Date,"-01"), format = "%Y-%m-%d"))
 
-ggplot(Tb_date_jaccard, aes(x = Date, y = jaccard)) + 
+ggplot(TB_date_jaccard, aes(x = Date, y = jaccard)) + 
   geom_point() +
   geom_line() +
   scale_y_continuous()
