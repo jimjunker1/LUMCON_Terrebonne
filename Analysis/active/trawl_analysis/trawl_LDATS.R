@@ -43,9 +43,9 @@ check_LDA_TS_inputs(TB_LDATS, topics = 2:5, nseeds = 2, formulas = ~time, nchang
 #should return NULL if everything is okay
 
 lda_model_set <- LDA_set(document_term_table = TB_LDATS$document_term_table,
-                         topics = c(2:5),
-                         nseeds = 2,
-                         control = list(quiet = FALSE))
+                         topics = c(2:7),
+                         nseeds = 5,
+                         control = list(quiet = TRUE))
 
 # saveRDS(lda_model_set, file = "./data/lda_model_set.RDS")
 lda_model_set <- readRDS(file = "./data/lda_model_set.rds")
@@ -55,7 +55,7 @@ plot(selected_lda_set[[1]])
 TB_trawl_ts <- TS_on_LDA(LDA_models = selected_lda_set, 
           document_covariate_table = TB_LDATS$document_covariate_table,
           formulas = ~sin_year + cos_year,
-          nchangepoints = c(0:5),
+          nchangepoints = c(1:5),
           timename = "time",
           weights = document_weights(TB_LDATS$document_term_table),
           control = list(nit = 1000))
@@ -64,12 +64,34 @@ TB_trawl_ts <- TS_on_LDA(LDA_models = selected_lda_set,
 TB_trawl_ts <- readRDS(file = "./data/TB_trawl_ts.rds")
 
 selected_ts <- select_TS(TB_trawl_ts)
+# debugonce(check_changepoints)
 plot(selected_ts)
 
+selected_ts$nchangepoints
 
 plot(rodents$document_covariate_table$newmoon, rodents$document_covariate_table$sin_year, type = "l")
 lines(rodents$document_covariate_table$newmoon, rodents$document_covariate_table$cos_year, type = "l", col = "red")
 
 
-trawl_LDATS <- LDA_TS(TB_LDATS, topics = 8:12, nseeds = 16, formulas = ~1, nchangepoints = 0:2, timename = "time",
-                      weights = TRUE)
+trawl_LDATS <- LDA_TS(TB_LDATS,
+                      topics = 2:7,
+                      nseeds = 10,
+                      formulas = ~sin_year + cos_year,
+                      nchangepoints = 1:3,
+                      timename = "time")
+
+saveRDS(trawl_LDATS, file = "./data/TB_trawl_LDATS.rds")
+trawl_LDATS <- readRDS(file = "./data/TB_trawl_LDATS.rds")
+
+
+plot(trawl_LDATS, option = "B")
+
+trawl_LDATS_nochange <- LDA_TS(data = TB_LDATS,
+                               topics = 7,
+                               nseeds = 2,
+                               formulas = ~sin_year + cos_year, 
+                               nchangepoints = 0:2,
+                               timename = "time",
+                               control = list(nit = 50))
+
+saveRDS(trawl_LDATS_nochange, file = "./data/TB_trawl_LDATS_nochange.rds")

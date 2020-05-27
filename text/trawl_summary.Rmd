@@ -440,3 +440,9 @@ knitr::kable(rank_table)
 
 This is the beginning of the LDATS summary
 
+```{r LDATS, echo = FALSE, warning=FALSE, include = TRUE, fig.height=8, fig.width=10}
+library(LDATS)
+trawl_LDATS <- readRDS(file = "../data/TB_trawl_LDATS.rds")
+plot(trawl_LDATS)
+```
+

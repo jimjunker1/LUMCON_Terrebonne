@@ -1,7 +1,7 @@
 ---
 title: 'Trawl Summary'
 author: "Jim Junker"
-date: "13 May, 2020"
+date: "27 May, 2020"
 knit: (function(inputFile, encoding) { 
       out_dir <- '../docs';
       rmarkdown::render(inputFile,
@@ -227,3 +227,11 @@ Reticulated Brittle Star                    44.00        NA
 Skilletfish                                 44.00        NA
 Smooth Mud Crab                             44.00        NA
 Spinycheek Sleeper                          44.00        NA
+
+
+## LDATS
+
+This is the beginning of the LDATS summary
+
+![](C:/Users/james/Documents/Projects/LUMCON_Terrebonne/text/../docs/trawl_summary_files/figure-html/LDATS-1.png)<!-- -->
+
