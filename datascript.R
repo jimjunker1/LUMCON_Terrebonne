@@ -33,29 +33,31 @@ data_import <<- function(){
     mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
            yday = yday(datetime))
   # 2020-05-12 
-  # these are throwing errors and not loading to do network timeout. May need to reset/update DNS servers if this continues.
-  shallow<<- read_csv(file = "https://www.dropbox.com/s/bw1klp28wx5i7lx/TB2_Compiled_Data.csv?dl=1") %>% as.data.frame() %>%
-    column_to_rownames('X1')
-  deep<<- read_csv(file = "https://www.dropbox.com/s/581r05guoyj6aoc/Patch%20Mosaic%20Master2.csv?dl=1") %>% as.data.frame() %>%
-    column_to_rownames('X1')
-  site_list<<-read_csv(file ="https://www.dropbox.com/s/fmahl3dc34ss33x/terrebonne_site_master.csv?dl=1") %>% as.data.frame()
-  TB_2018_core_meta<<-read_csv(file = "./data/metadata/TB_2018_Core-Metadata.csv", 
-                               col_types = cols(.default = "?", Date = col_date(format = "%m/%d/%Y"), Time = "i",
-                                                `Van Veen Grab` = "i", Core = "i"))
-  TB_2019_core_meta<<- read_csv(file = "./data/metadata/TB_2019_Core-Metadata.csv",
-                                col_types = cols(.default = "?", Date = col_date(format = "%m/%d/%Y"), Time = "i",
-                                                 `Van Veen Grab` = "i", Core = "i"))
-   # sheets_auth(email = "jjunker@lumcon.edu")
-   # options(gargle_oauth_email = "jjunker@lumcon.edu")
-   # TB_trawl_meta <- sheets_get("1mUG6oYBGGONBzgXPsvS6XZkNRUIojxtI7BV8WUTh-3I")#sheetID extracted with as_sheets_ID(*sheet URL*)
-   # TB_trawl_tabs <- nrow(TB_trawl_meta[['sheets']])
-   # TB_trawl_list <- vector('list', TB_trawl_tabs)
-   # for(tab in 1:TB_trawl_tabs){
-   #   TB_trawl_list[[tab]] <- sheets_read(TB_trawl_meta[['spreadsheet_id']], sheet = tab, col_types = "T?d", range = cell_cols("A:C"))
-   # }
-   # TB_trawl_data <- bind_rows(TB_trawl_list)
- # 
- ##### Data entry fixes ####
+  # these are throwing errors and not loading due to network timeout. May need to reset/update DNS servers if this continues.
+  
+  # shallow<<- read_csv(file = "https://www.dropbox.com/s/bw1klp28wx5i7lx/TB2_Compiled_Data.csv?dl=1") %>% as.data.frame() %>%
+  #   column_to_rownames('X1')
+  # deep<<- read_csv(file = "https://www.dropbox.com/s/581r05guoyj6aoc/Patch%20Mosaic%20Master2.csv?dl=1") %>% as.data.frame() %>%
+  #   column_to_rownames('X1')
+  # site_list<<-read_csv(file ="https://www.dropbox.com/s/fmahl3dc34ss33x/terrebonne_site_master.csv?dl=1") %>% as.data.frame()
+  # TB_2018_core_meta<<-read_csv(file = "./data/metadata/TB_2018_Core-Metadata.csv", 
+  #                              col_types = cols(.default = "?", Date = col_date(format = "%m/%d/%Y"), Time = "i",
+  #                                               `Van Veen Grab` = "i", Core = "i"))
+  # TB_2019_core_meta<<- read_csv(file = "./data/metadata/TB_2019_Core-Metadata.csv",
+  #                               col_types = cols(.default = "?", Date = col_date(format = "%m/%d/%Y"), Time = "i",
+  #                                                `Van Veen Grab` = "i", Core = "i"))
+ #    # options(gargle_oauth_email = "jjunker@lumcon.edu")
+ #    gs4_auth(email = "jjunker@lumcon.edu")
+ #    # gs4_deauth()
+ #    TB_trawl_meta <- gs4_get("1mUG6oYBGGONBzgXPsvS6XZkNRUIojxtI7BV8WUTh-3I")#sheetID extracted with as_sheets_ID(*sheet URL*)
+ #    TB_trawl_tabs <- nrow(TB_trawl_meta[['sheets']])
+ #    TB_trawl_list <- vector('list', TB_trawl_tabs)
+ #    for(tab in 1:TB_trawl_tabs){
+ #      TB_trawl_list[[tab]] <- sheets_read(TB_trawl_meta[['spreadsheet_id']], sheet = tab, col_types = "T?d", range = cell_cols("A:C"))
+ #    }
+ #    TB_trawl_data <- bind_rows(TB_trawl_list)
+ # # 
+ # ##### Data entry fixes ####
  #    TB_trawl_data <- TB_trawl_data %>%
  #     filter(!is.na(Species)) %>%
  #     mutate(Species = str_replace(Species,"spp(?!\\.)","spp."),
@@ -85,7 +87,7 @@ data_import <<- function(){
  #                                    grepl("ophiuroid*", Species, ignore.case = TRUE) ~ "Class: Ophiuroidae, Brittle star",
  #                                    grepl("F. Sciaenidae|F. Scianidae", Species, ignore.case = TRUE) ~ "F. Sciaenidae, Drum",
  #                                    grepl("Family: Monocanthidae|Monocanthidae", Species, ignore.case = TRUE) ~ "Family: Monacanthidae, Filefish",
- #                                    grepl("Clibanarius vittatus|Clibenarius vittatum", Species, ignore.case = TRUE) ~ "Clibanarius vittatus, Thinstriped Hermit Crab",
+ #                                    grepl("Clibanarius vittatus|Clibenarius vittatum", Species, ignore.case = TRUE) ~ "Clibanarius vittatus, Hermit Crab",
  #                                    grepl("Leiostomus xanthurus",Species, ignore.case = TRUE) ~ "Leiostomus xanthurus, Spot",
  #                                    grepl("Selene setapinnis", Species, ignore.case = TRUE) ~ "Selene setapinnis, Atlantic Moonfish",
  #                                    grepl("Chaetodipterus faber", Species, ignore.case = TRUE) ~ "Chaetodipterus faber, Atlantic Spadefish",
@@ -171,7 +173,7 @@ data_import <<- function(){
  #   species_names = list(c("Class: Ophiuroidea"),
  #                        c("Class: Scyphozoa"),
  #                        c("Class: Polychaeta"),
- #                        c("Family: Brachyura"),
+ #                        c("Family: Brachyura", "Crab"),
  #                        c("Family: Blenniidae"),
  #                        c("Family: Gobiidae"),
  #                        c("Family: Malacostraca"),
