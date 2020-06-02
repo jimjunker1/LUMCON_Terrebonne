@@ -142,7 +142,7 @@ ggplot(trawl_LDATS_df, aes(x = k, y = TS_AIC, group = factor(nchangepoints))) +
   geom_point(aes(color = factor(nchangepoints)))
 
 
-trawl__LDATS_seasons <- 
+trawl_LDATS_seasons <- 
   lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
                                           topics = x$topics,
                                           nchangepoints = x$nchangepoints,
@@ -150,3 +150,14 @@ trawl__LDATS_seasons <-
                                           formulas = ~sin_year+cos_year,
                                           timename = 'time',
                                           control = list(nit = 1000))})
+saveRDS(trawl_LDATS_seasons, file = "./data/trawl_LDATS_seasons.rds")
+
+trawl_LDATS_null <- 
+  lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
+                                          topics = x$topics,
+                                          nchangepoints = x$nchangepoints,
+                                          nseeds = 10,
+                                          formulas = ~1,
+                                          timename = 'time',
+                                          control = list(nit = 1000))})
+saveRDS(trawl_LDATS_null, "./data/trawl_LDATS_null.rds")
