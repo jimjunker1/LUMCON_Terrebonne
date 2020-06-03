@@ -71,11 +71,12 @@ selected_ts$nchangepoints
 
 
 trawl_LDATS <- LDA_TS(TB_LDATS,
-                      topics = 2:7,
+                      topics = 4,
                       nseeds = 10,
-                      formulas = ~sin_year + cos_year,
-                      nchangepoints = 1:3,
-                      timename = "time")
+                      formulas = ~sin_year + cos_year + Date,
+                      nchangepoints = 1:2,
+                      timename = "Date")
+plot(trawl_LDATS)
 
 saveRDS(trawl_LDATS, file = "./data/TB_trawl_LDATS.rds")
 trawl_LDATS <- readRDS(file = "./data/TB_trawl_LDATS.rds")
@@ -113,45 +114,11 @@ trawl_LDATS_noseason_nochange <- LDA_TS(data = TB_LDATS,
 saveRDS(trawl_LDATS_noseason, file = "./data/TB_trawl_LDATS_noseason_nochange.rds")
 
 
-
+##mapping across parameter space ##
 params_list <-data.frame(expand.grid(topics = 2:7, nchangepoints = 0:2)) %>%
   split(., seq(nrow(.)))
 
-
-
-trawl_LDATs_time <- lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
-                                                            topics = x$topics,
-                                                            nchangepoints = x$nchangepoints,
-                                                            nseeds = 10,
-                                                            formulas = ~time,
-                                                            timename = 'time',
-                                                            control = list(nit = 1000))})
-saveRDS(trawl_LDATs_lists, file = "./data/trawl_LDATS_timelist.rds")
-
-#plotting the change in AIC in both LDA and TS with k and nchangepoints
-trawl_LDATS_df <- 
-  lapply(trawl_LDATs_lists, function(x) {
-    data.frame(
-     k = x$'Selected LDA model'$k@k,
-     LDA_AIC = min(vapply(x$'LDA models', AIC, 0, USE.NAMES = FALSE)),
-     nchangepoints = x$'Selected TS model'$nchangepoints,
-     TS_AIC = AIC(x$'Selected TS model'))
-  }) %>% bind_rows
-
-ggplot(trawl_LDATS_df, aes(x = k, y = TS_AIC, group = factor(nchangepoints))) + 
-  geom_point(aes(color = factor(nchangepoints)))
-
-
-trawl_LDATS_seasons <- 
-  lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
-                                          topics = x$topics,
-                                          nchangepoints = x$nchangepoints,
-                                          nseeds = 10,
-                                          formulas = ~sin_year+cos_year,
-                                          timename = 'time',
-                                          control = list(nit = 1000))})
-saveRDS(trawl_LDATS_seasons, file = "./data/trawl_LDATS_seasons.rds")
-
+# null
 trawl_LDATS_null <- 
   lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
                                           topics = x$topics,
@@ -160,4 +127,48 @@ trawl_LDATS_null <-
                                           formulas = ~1,
                                           timename = 'time',
                                           control = list(nit = 1000))})
-saveRDS(trawl_LDATS_null, "./data/trawl_LDATS_null.rds")
+# saveRDS(trawl_LDATS_null, "./data/trawl_LDATS_null.rds")
+trawl_LDATS_null <- readRDS(file = "./data/trawl_LDATS_null.rds")
+
+# time
+trawl_LDATs_time <- lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
+                                                            topics = x$topics,
+                                                            nchangepoints = x$nchangepoints,
+                                                            nseeds = 10,
+                                                            formulas = ~time,
+                                                            timename = 'time',
+                                                            control = list(nit = 1000))})
+# saveRDS(trawl_LDATs_time, file = "./data/trawl_LDATS_timelist.rds")
+trawl_LDATS_time <- readRDS(file = "./data/trawl_LDATS_timelist.rds")
+# season
+trawl_LDATS_seasons <- 
+  lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
+                                          topics = x$topics,
+                                          nchangepoints = x$nchangepoints,
+                                          nseeds = 10,
+                                          formulas = ~sin_year+cos_year,
+                                          timename = 'time',
+                                          control = list(nit = 1000))})
+# saveRDS(trawl_LDATS_seasons, file = "./data/trawl_LDATS_seasons.rds")
+trawl_LDATS_seasons <- readRDS(file ="./data/trawl_LDATS_seasons.rds")
+
+
+#plotting the change in AIC in both LDA and TS with k and nchangepoints
+LDATS_summary <- function(x){
+  data.frame(
+    k = x$'Selected LDA model'$k@k,
+    LDA_AIC = min(vapply(x$'LDA models', AIC, 0, USE.NAMES = FALSE)),
+    nchangepoints = x$'Selected TS model'$nchangepoints,
+    TS_AIC = AIC(x$'Selected TS model'))
+}
+
+trawl_LDATS_df <- 
+  lapply(trawl_LDATS_null, LDATS_summary) %>% bind_rows %>% mutate(method = "null") %>%
+  bind_rows(lapply(trawl_LDATS_time, LDATS_summary) %>% bind_rows %>% mutate(method = "time")) %>%
+  bind_rows(lapply(trawl_LDATS_seasons, LDATS_summary) %>% bind_rows %>% mutate(method = "season"))
+
+#plotting the change in AIC in both LDA and TS with k and nchangepoints
+ggplot(trawl_LDATS_df, aes(x = nchangepoints, y = TS_AIC, group = factor(k))) + 
+  geom_point(aes(color = factor(k))) + facet_grid(~method)
+
+plot(trawl_LDATS_time[[12]])

@@ -13,7 +13,7 @@ pacman::p_load(git2r, httr, semver, testthat, yaml, EML, data.table,
                tictoc, chron, lubridate, httr, TTR, grid,
                gridExtra, ggridges, iNEXT, vegan, rlist, pipeR,
                viridis, broom, bbmle, ggthemes, ggeffects,
-               rfishbase, auk, betapart)
+               rfishbase, auk, betapart, plot3D)
 
 pacman::p_load_gh(c("jimjunker1/junkR"))#, "ropensci/rfishbase"))
 
