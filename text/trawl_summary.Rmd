@@ -31,7 +31,7 @@ TB_trawl_data <- readRDS("../data/TB_trawl_data.rds")
 
 ```
 
-#TERREBONNE BAY TRAWL ANALYSIS SUMMARY {.unlisted .unnumbered}
+# TERREBONNE BAY TRAWL ANALYSIS SUMMARY {.unlisted .unnumbered}
 
 *insert terrebonne image here*
 
