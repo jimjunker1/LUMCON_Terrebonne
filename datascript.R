@@ -2,9 +2,9 @@ source("install-packages.R")
 # data manipulation
 
 data_import <<- function(){
-  temp_paths <- list.files(path = "./data/", "*temp_*", full.names = TRUE)
-  temp_files <- lapply(temp_paths, read_csv, skip = 1,
-                       col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
+  temp_paths <- list.files(path = "./data/environment/", "Terrebonne.*temp_.*2020.*", full.names = TRUE)
+  temp_files <- lapply(temp_paths, read_csv,
+                       col_types = cols('Date/Time' = col_datetime(format = "%m/%d/%Y %H:%M")))
   
   roundUP <<- function(x,to=10){
     to*(x%/%to + as.logical(x%%to))
@@ -12,26 +12,62 @@ data_import <<- function(){
   
   tempF_to_C <<- function(F){(5/9)*(F-32)}
   
-  temp_df <<- bind_rows(temp_files) %>%
-    rename(datetime = 'TS', temp_F = 'F') %>%
-    mutate(yday = yday(datetime))
+  TB_temp_df <<- bind_rows(temp_files) %>%
+    select(datetime = 'Date/Time', temp_C = 'Water Temp C') %>%
+    mutate(Date = as.Date(datetime)) %>%
+    select(-datetime) %>%
+    group_by(Date) %>%
+    summarise_all(mean, na.rm = TRUE)
   
-  do_paths <- list.files(path = "./data/", "*DO_*", full.names = TRUE)
-  do_files <- lapply(do_paths, read_csv, skip = 1,
-                     col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
+  # do_paths <- list.files(path = "./data/", "*DO_*", full.names = TRUE)
+  # do_files <- lapply(do_paths, read_csv, skip = 1,
+  #                    col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
+  # 
+  # TB_do_df <<- bind_rows(do_files) %>%
+  #   rename(datetime = 'TS', do_mg_L = 'mg L') %>%
+  #   mutate(yday = yday(datetime))
+  # 
+  # hydro_paths <- list.files(path = "./data/", "hydro{1}.*.csv", full.names= TRUE)
+  # hydro_files <- lapply(hydro_paths, read_csv, col_type = cols(ArrayID = col_skip(), Year = col_skip(), JDay= col_skip(),
+  #                                                              X4 = col_skip(), X5 = col_skip(), X6 = col_skip(), Time = col_skip(), X8 = col_skip(), `Date/Time` = col_character(),
+  #                                                              DO = col_skip(), Value4 = col_double(), Depth = col_skip(), `Depth feet` = col_skip()))
+  # TB_hydro_df <<- bind_rows(hydro_files) %>%
+  #   rename(datetime = 'Date/Time', temp_C = 'Temp', temp_F = 'Water Temp F', spCon_uS_cm = 'Value4', sal_psu = 'Sal') %>%
+  #   mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
+  #          yday = yday(datetime))
   
-  do_df <<- bind_rows(do_files) %>%
-    rename(datetime = 'TS', do_mg_L = 'mg L') %>%
-    mutate(yday = yday(datetime))
+  sal_paths = list.files(path = "./data/environment/", "Terrebonne.*salinity.*2020.*", full.names = TRUE)
+  TB_salinity_df <<- lapply(sal_paths, read_csv,
+                       col_types = cols('Date/Time' = col_datetime(format = "%m/%d/%Y %H:%M"))) %>%
+    bind_rows %>%
+    select(datetime = 'Date/Time', sal_psu = contains("salinity")) %>%
+    mutate(Date = as.Date(datetime)) %>%
+    select(-datetime) %>%
+    group_by(Date) %>%
+    summarise_all(mean, na.rm = TRUE)
   
-  hydro_paths <- list.files(path = "./data/", "hydro{1}.*.csv", full.names= TRUE)
-  hydro_files <- lapply(hydro_paths, read_csv, col_type = cols(ArrayID = col_skip(), Year = col_skip(), JDay= col_skip(),
-                                                               X4 = col_skip(), X5 = col_skip(), X6 = col_skip(), Time = col_skip(), X8 = col_skip(), `Date/Time` = col_character(),
-                                                               DO = col_skip(), Value4 = col_double(), Depth = col_skip(), `Depth feet` = col_skip()))
-  hydro_df <<- bind_rows(hydro_files) %>%
-    rename(datetime = 'Date/Time', temp_C = 'Temp', temp_F = 'Water Temp F', spCon_uS_cm = 'Value4', sal_psu = 'Sal') %>%
-    mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
-           yday = yday(datetime))
+  marine_center_paths = list.files(path = "./data/environment/", "MarineCenter{1}.*.csv", full.names = TRUE)
+  marine_center_files = lapply(marine_center_paths, read_csv, col_type = cols(`Date/Time` = col_character())) %>%
+    map(~.x %>% dplyr::rename(datetime = 'Date/Time') %>%
+          mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
+                 Date = as.Date(datetime)) %>%
+          select(-datetime) %>%
+          group_by(Date) %>%
+          summarise_all(mean, na.rm = TRUE))
+        
+  MC_salinity_df <<- marine_center_files[[1]] %>% select(Date, sal_psu = "Sal")
+  MC_temperature_df <<- marine_center_files[[2]] %>% select(Date, temp_C = 'Water Temp C')
+  MC_depth_df <<- marine_center_files[[3]] %>% select(Date, depth_m = 'Water Depth M')
+  
+  regional_temp_paths = list.files(path = "./data/environment/", ".nc", full.names = TRUE)
+  regional_temp_list = ncdf4::nc_open(regional_temp_paths)
+  regional_time = ncvar_get(regional_temp_list, "time")
+  regional_time_units = ncatt_get(regional_temp_list, 'time', 'units')
+  temp_array = ncvar_get(regional_temp_list, 'sst')
+  regional_time_date = as.Date(regional_time, origin =  unlist(strsplit(regional_time_units$value," "))[3], format = "%Y-%m-%d")
+  temp_avg = apply(temp_array,3,mean, na.rm = TRUE)
+  regional_temp_df <<- data.frame(Date = as.Date(regional_time_date), sst = temp_avg) %>% as_tibble
+
   # 2020-05-12 
   # these are throwing errors and not loading due to network timeout. May need to reset/update DNS servers if this continues.
   
