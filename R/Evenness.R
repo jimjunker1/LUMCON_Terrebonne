@@ -170,11 +170,11 @@ dis1 <- function(x, q, type = "tax", type2 = "species", tree = NULL){
 #' @type indicates the type of contribution: "tax" for taxonomic and "phy" for phylogenetic       
 #' @return the plot of the contribution of each species/node.
 draw_dis_spe <- function(data, title_name, type = "tax"){
-  colnames(data) <- c("q = 0", "q = 1", "q = 2")
-  data <- melt(data)
-  g <- ggplot(data, aes(x = as.factor(Var1), y = value, fill = Var2))+
+  # colnames(data) <- c("q = 0", "q = 1", "q = 2")
+  # data <- melt(data)
+  g <- ggplot(data, aes(x = as.factor(species), y = UqN, fill = q_order))+
     geom_col(width = 0.2)+
-    facet_grid(Var2~., scales = "free_y")+
+    facet_grid(q_order~., scales = "free_y")+
     theme_bw()+
     # ylim(c(0, max(data[, 3])))+
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .3), 

@@ -57,4 +57,23 @@ debugonce(new_fun)
 x = evenness_profile_function(TB_trawl_taxasite_t, q.seq = seq(0, 2, 0.05))
 debugonce(tax_q_profile)
 evenness_plot = tax_q_profile(x[, 3, ],seq(0, 2, 0.05), "E5")+ ylim(c(0, 1)) +facet_wrap(~year) + theme(plot.title = element_blank())
-# 
+
+evenness_plot
+
+## Estimate the contribution of each species to Jaccard distance over time 
+# debugonce(dis1)
+q0 = dis1(TB_trawl_taxasite_t, q = 0)
+q1 = dis1(TB_trawl_taxasite_t, q = 1)
+q2 = dis1(TB_trawl_taxasite_t, q = 2)
+q_list = list(y0 = y0,y1 = y1,y2 = y2)
+dis_data =  q_list%>% 
+  map(~.x %>% data.frame %>% dplyr::slice_head(n = 1) %>% pivot_longer(everything(),names_to = "species", values_to = "UqN") %>% dplyr::mutate(q_order = NA)) %>% 
+  map2(., as.list(names(q_list)), ~.x %>% dplyr::mutate(q_order = .y)) %>%
+  bind_rows(.id = "q_order") 
+
+debugonce(draw_dis_spe)
+draw_dis_spe(dis_data, title_name = NULL)
+
+# gini coefficient for all samples 
+
+
