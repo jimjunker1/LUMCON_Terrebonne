@@ -1,0 +1,59 @@
+---
+title: "Manuscript title here"
+author: 
+- name: James R Junker
+  affiliation: Louisiana Universities Marine Consortium
+output:
+   word_document:
+     reference_docx: docx_template.docx
+   pdf_document:
+     keep_tex: true
+   html_document: default
+header-includes:
+- \usepackage{lineno}
+- \usepackage{amsmath}
+- \linenumbers
+linestretch: 1
+bibliography: refs.bib
+link-citations: no
+link-color: grey
+csl: ecology.csl
+---
+
+<!--- this is a note in Rmarkdown --->
+
+# Abstract
+Anthropogenic activities continue to exert long-term, varied, and increasing pressures on ecosystems causing alterations to biological diversity on broad and local scales. Shifts in biodiversity are variable, nuanced and difficult to predict. Yet, understanding how communities change through time is crucial for predicting current and future changes to biological systems and the services they provide. Explaining the extent and pace of biodiversity change will require identifying the conditions that lead to divergent biological responses, e.g., whether change happens gradually or abruptly and through individual versus cohesive species responses. In particular, disentangling the roles of extrinsic, environmental forcing and intrinsic, ecological processes is vital. We propose to combine two time series of environmental and biological change with information on species’ traits and trophic interactions to attribute biological change to its extrinsic and intrinsic drivers. The proposed work includes analysis and continuation of a data set extending nearly two decades of pelagic megafaunal communities and environment monitoring
+for a shallow estuarine bay along the Gulf of Mexico Coast. To this, we add analysis and continuation of a three year dataset of benthic macrofaunal from the same bay. The project proposes to address four key questions.
+
+\newpage
+
+# Introduction
+<!--- warming and effects in food webs --->
+Anthropogenic activities continue to exert long-term, varied, and increasing pressures on ecosystems [@steffen2015] causing alterations to biological diversity on local and global scales. Shifts in biodiversity at local scales are variable and potentially more nuanced than at global scales, but generally local changes manifest primarily as changes to community composition and structure rather than declines in richness [@hillebrand2018]. These shifts in communities through time are difficult to predict, in part, due to the multidimensional nature of biodiversity [@chase2018]. Yet, understanding how communities change through time is crucial for predicting current and future changes to biological systems and ecosystem services.
+<!--- Speeding up of food web: Species levels--->
+Explaining the extent and pace of biodiversity change will require identifying the conditions that lead to divergent biological responses to environmental change, both natural and anthropogenic. In particular, it will be important to disentangle the roles of intrinsic (e.g., ecological) and extrinsic (e.g., environmental) drivers of biodiversity change. Intrinsic and extrinsic processes can interact, leading to temporal patterns of biodiversity change that vary in response to environmental change. For example, gradual environmental change over time can lead to gradual community shifts or these shifts may be undetectable or abrupt [@williams2011][@scheffer2003]. 
+
+Disentangling the complexity of drivers and responses in community structure is especially pressing for marine systems. Marine systems have experienced greater changes than other habitats [@antao2020]. Yet, we currently lack linkages between ecological theory, primarily derived from terrestrial systems, and data in marine systems leaving unanswered questions about biodiversity changes in these habitats [@blowes2019]. We propose a framework to explore the nature of biodiversity change in an estuary bay community and connect this change to intrinsic and extrinsic drivers. This research will build towards a more coherent theory of biodiversity change through time [@shoemaker2020]. 
+<!--- Connect traits to the 'speed' of ecosystem energy fluxes--->
+Here, we quantified over a decade of change in a shallow estuarine community. We
+
+# Methods
+
+## Trawl sampling
+
+Trawl sampling was conducted as part of the Louisiana Universities Marine Consortium's educational outreach program [https://www.lumcon.edu/education-and-outreach]<https://lumcon.edu/education-and-outreach/>. Individual trawls were conducted using *trawl apparatus description...*
+
+
+
+## Community change
+
+## Statistical Analyses
+
+# Results
+
+# Discussion
+
+\newpage
+
+# References

@@ -13,7 +13,7 @@ r_LDATS <- LDA_TS(rodents, topics = 2:5, nseeds = 2, formulas = ~1, nchangepoint
 
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
-  select(Date, Common_name, Abundance) %>%
+  dplyr::select(Date, Common_name, Abundance) %>%
   group_by(Date, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%
   na.omit %>%
@@ -22,22 +22,22 @@ TB_trawl_taxasite <- TB_trawl_data %>%
 
 seasonal_time <- data.frame(day = 1:365, sin_year = sin(1:365), cos_year = cos(1:365))
 
-# write.csv(TB_trawl_data %>% select(Common_name, species_mod) %>% group_by(Common_name, species_mod) %>% unique, file = "./data/spp_abbrev.csv", quote = FALSE, row.names = FALSE)
+# write.csv(TB_trawl_data %>% dplyr::select(Common_name, species_mod) %>% group_by(Common_name, species_mod) %>% unique, file = "./data/spp_abbrev.csv", quote = FALSE, row.names = FALSE)
 
 #create covariate table
-TB_trawl_covariates <- TB_trawl_taxasite %>% select(Date) %>% mutate(Date = as.Date(Date),
+TB_trawl_covariates <- TB_trawl_taxasite %>% dplyr::select(Date) %>% mutate(Date = as.Date(Date ,origin = min(Date)),
                                                                      time = as.integer(Date, origin = min(Date)),
                                                                      day = lubridate::yday(Date)) %>%
   left_join(seasonal_time) %>% data.frame
 
-TB_trawl_taxasite %>% select(-Date) %>% data.frame -> TB_trawl_taxa
+TB_trawl_taxasite %>% dplyr::select(-Date) %>% data.frame -> TB_trawl_taxa
 
 # combine taxa data and covariate data to list, name, and conform to LDATS inputs
 TB_LDATS <- list(TB_trawl_taxa, TB_trawl_covariates) %>%
   setNames(.,nm = c("document_term_table","document_covariate_table")) %>%
   LDATS::conform_LDA_TS_data(quiet = FALSE)
 
-debugonce(check_LDA_TS_inputs)
+# debugonce(check_LDA_TS_inputs)
 check_LDA_TS_inputs(TB_LDATS, topics = 2:5, nseeds = 2, formulas = ~time, nchangepoints = 0:1, timename = "time", 
                     weights = TRUE, control = list(quiet = FALSE))
 #should return NULL if everything is okay
@@ -73,9 +73,9 @@ selected_ts$nchangepoints
 trawl_LDATS <- LDA_TS(TB_LDATS,
                       topics = 4,
                       nseeds = 10,
-                      formulas = ~sin_year + cos_year + Date,
+                      formulas = ~sin_year + cos_year + time,
                       nchangepoints = 1:2,
-                      timename = "Date")
+                      timename = "time")
 plot(trawl_LDATS)
 
 saveRDS(trawl_LDATS, file = "./data/TB_trawl_LDATS.rds")
@@ -92,8 +92,10 @@ trawl_LDATS_nochange <- LDA_TS(data = TB_LDATS,
                                control = list(nit = 1000))
 
 saveRDS(trawl_LDATS_nochange, file = "./data/TB_trawl_LDATS_nochange.rds")
+trawl_LDATS_nochange <- readRDS(file = "./data/TB_trawl_LDATS_nochange.rds")
+plot(trawl_LDATS_nochange)
 
-trawl_LDATs_noseason <- LDA_TS(data = TB_LDATS,
+trawl_LDATS_noseason <- LDA_TS(data = TB_LDATS,
                                topics = 5:7,
                                nseeds = 10,
                                formulas = ~time,
@@ -101,7 +103,9 @@ trawl_LDATs_noseason <- LDA_TS(data = TB_LDATS,
                                timename = 'time',
                                control = list(nit = 1000))
 
-saveRDS(trawl_LDATs_noseason, file = "./data/TB_trawl_LDATS_noseason.rds")
+# saveRDS(trawl_LDATS_noseason, file = "./data/TB_trawl_LDATS_noseason.rds")
+trawl_LDATS_noseason <- readRDS(file = "./data/TB_trawl_LDATS_noseason.rds")
+plot(trawl_LDATs_noseason)
 
 trawl_LDATS_noseason_nochange <- LDA_TS(data = TB_LDATS,
                                topics = 5:7,
@@ -111,11 +115,12 @@ trawl_LDATS_noseason_nochange <- LDA_TS(data = TB_LDATS,
                                timename = 'time',
                                control = list(nit = 1000))
 
-saveRDS(trawl_LDATS_noseason, file = "./data/TB_trawl_LDATS_noseason_nochange.rds")
+# saveRDS(trawl_LDATS_noseason_nochange, file = "./data/TB_trawl_LDATS_noseason_nochange.rds")
+plot(trawl_LDATS_noseason_nochange)
 
 
 ##mapping across parameter space ##
-params_list <-data.frame(expand.grid(topics = 2:7, nchangepoints = 0:2)) %>%
+params_list <-data.frame(expand.grid(topics = 2:8, nchangepoints = 0:2)) %>%
   split(., seq(nrow(.)))
 
 # null
@@ -140,6 +145,7 @@ trawl_LDATs_time <- lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
                                                             control = list(nit = 1000))})
 # saveRDS(trawl_LDATs_time, file = "./data/trawl_LDATS_timelist.rds")
 trawl_LDATS_time <- readRDS(file = "./data/trawl_LDATS_timelist.rds")
+
 # season
 trawl_LDATS_seasons <- 
   lapply(params_list, function(x){ LDA_TS(data = TB_LDATS,
@@ -164,11 +170,14 @@ LDATS_summary <- function(x){
 
 trawl_LDATS_df <- 
   lapply(trawl_LDATS_null, LDATS_summary) %>% bind_rows %>% mutate(method = "null") %>%
-  bind_rows(lapply(trawl_LDATS_time, LDATS_summary) %>% bind_rows %>% mutate(method = "time")) %>%
+  bind_rows(lapply(trawl_LDATs_time, LDATS_summary) %>% bind_rows %>% mutate(method = "time")) %>%
   bind_rows(lapply(trawl_LDATS_seasons, LDATS_summary) %>% bind_rows %>% mutate(method = "season"))
 
 #plotting the change in AIC in both LDA and TS with k and nchangepoints
 ggplot(trawl_LDATS_df, aes(x = nchangepoints, y = TS_AIC, group = factor(k))) + 
-  geom_point(aes(color = factor(k))) + facet_grid(~method)
+  geom_line(aes(color = factor(k))) + facet_grid(~method)
 
-plot(trawl_LDATS_time[[12]])
+ggplot(trawl_LDATS_df, aes(x = k, y = LDA_AIC))+
+  geom_line(aes()) + facet_grid(~method)
+
+
