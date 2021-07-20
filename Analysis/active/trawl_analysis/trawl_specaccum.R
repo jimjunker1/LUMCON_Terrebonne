@@ -3,7 +3,7 @@
 
 ##create taxa by site matrix
 TB_trawl_commonsite <- TB_trawl_data %>%
-  select(year, month, date_id, Common_name) %>%
+  dplyr::select(year, month, date_id, Common_name) %>%
   group_by(date_id, Common_name) %>%
   distinct() %>% 
   mutate(pres = 1) %>%
@@ -99,5 +99,7 @@ beta_df <- bind_rows(beta_lists) %>% mutate(Date = as.Date(paste0(beta_dates,"-0
   pivot_longer(-Date, names_to = "partition", values_to = "value")
                        
 source("./figures/diversity_time_plots.R")
+
+
 
   

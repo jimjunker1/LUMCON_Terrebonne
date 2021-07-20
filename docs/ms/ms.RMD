@@ -35,7 +35,7 @@ Anthropogenic activities continue to exert long-term, varied, and increasing pre
 Explaining the extent and pace of biodiversity change will require identifying the conditions that lead to divergent biological responses to environmental change, both natural and anthropogenic. In particular, it will be important to disentangle the roles of intrinsic (e.g., ecological) and extrinsic (e.g., environmental) drivers of biodiversity change. Intrinsic and extrinsic processes can interact, leading to temporal patterns of biodiversity change that vary in response to environmental change. For example, gradual environmental change over time can lead to gradual community shifts or these shifts may be undetectable or abrupt [@williams2011][@scheffer2003]. 
 
 Disentangling the complexity of drivers and responses in community structure is especially pressing for marine systems. Marine systems have experienced greater changes than other habitats [@antao2020]. Yet, we currently lack linkages between ecological theory, primarily derived from terrestrial systems, and data in marine systems leaving unanswered questions about biodiversity changes in these habitats [@blowes2019]. We propose a framework to explore the nature of biodiversity change in an estuary bay community and connect this change to intrinsic and extrinsic drivers. This research will build towards a more coherent theory of biodiversity change through time [@shoemaker2020]. 
-<!--- Connect traits to the 'speed' of ecosystem energy fluxes--->
+
 Here, we quantified over a decade of change in a shallow estuarine community. We
 
 # Methods
@@ -44,8 +44,6 @@ Here, we quantified over a decade of change in a shallow estuarine community. We
 
 Trawl sampling was conducted as part of the Louisiana Universities Marine Consortium's educational outreach program [https://www.lumcon.edu/education-and-outreach]<https://lumcon.edu/education-and-outreach/>. Individual trawls were conducted using *trawl apparatus description...*
 
-
-
 ## Community change
 
 ## Statistical Analyses
@@ -53,6 +51,8 @@ Trawl sampling was conducted as part of the Louisiana Universities Marine Consor
 # Results
 
 # Discussion
+
+# Acknowledgements
 
 \newpage
 

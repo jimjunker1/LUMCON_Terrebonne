@@ -1,4 +1,4 @@
-source("datascript.R")
+source(here::here("datascript.R"))
 
 devtools::install_github("weecology/LDATS")
 library(LDATS)

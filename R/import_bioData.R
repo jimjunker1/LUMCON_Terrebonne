@@ -1,4 +1,5 @@
 import_bioData <- function(){
+   source(here::here("R/clean_trawl_spp.R"))
 # 2020-05-12 
 # these are throwing errors and not loading due to network timeout. May need to reset/update DNS servers if this continues.
 
@@ -208,6 +209,11 @@ import_bioData <- function(){
             date_id = paste0(as.character(year),"-",as.character(month)))
 
 #### End scientific and common name fixes #### 
+#### Confirm Species and Common names from taxonomic databases
+   debugonce(clean_trawl_spp)
+   new_spp =  TB_trawl_data %>% clean_trawl_spp(spp_col = "species_mod", common_col = "Common_name",
+                                     taxonomy_list = here::here("data/taxonomy_valid_common.rds")) %>% unique
+   
 #### End Data entry fixes ####
  saveRDS(TB_trawl_data, file = "./data/TB_trawl_data.rds")
  biology_sysDate = Sys.Date()

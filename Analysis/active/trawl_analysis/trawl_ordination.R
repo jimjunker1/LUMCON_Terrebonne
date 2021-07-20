@@ -1,7 +1,7 @@
 ## terrebonne bay trawl working analysis
 ## works with TB_trawl_data
 # source("install-packages.R")#installs all necessary packages
-source("datascript.R")#imports data with some minor cleanup
+source(here::here("datascript.R"))#imports data with some minor cleanup
 
 
 ## summarise the monthly sampling effort
