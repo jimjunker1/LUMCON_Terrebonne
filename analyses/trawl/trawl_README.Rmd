@@ -1,0 +1,30 @@
+---
+title: "Trawl-README"
+author: "JRJ"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+knit: (function(inputFile, encoding) { 
+      out_dir <- "docs";
+      rmarkdown::render(inputFile,
+                        encoding=encoding, 
+                        output_file=file.path(here::here(), out_dir, 'trawl_README.html')) })
+output: 
+  html_document:
+      keep_md: true
+      toc: true
+      toc_float: true
+      toc_depth: 3
+      numbered_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+here::i_am("analyses/trawl/trawl_README.Rmd")
+
+```
+
+This document outlines the workflow for the initial trawl analysis. The first manuscript's goals is to characterize and quantify the change in trawl communities in Terrebonne Bay from 2007 onward. Analysis sequence is:
+
+1. "packages.R"
+2. "datascript.R" (sourcing this document will call the 'packages.R' script)
+3. "trawl_rarefaction.R"
+4. "trawl_specaccum.R"

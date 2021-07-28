@@ -3,7 +3,7 @@ title: 'Trawl Summary'
 author: "Jim Junker"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 knit: (function(inputFile, encoding) { 
-      out_dir <- '../docs';
+      out_dir <- './docs';
       rmarkdown::render(inputFile,
                         encoding=encoding, 
                         output_file=file.path(dirname(inputFile), out_dir, 'trawl_summary.html')) })
@@ -27,7 +27,7 @@ library(gridExtra)
 
 '%ni%' <- Negate('%in%')
 
-TB_trawl_data <- readRDS("../data/TB_trawl_data.rds")
+TB_trawl_data <- readRDS(here::here("data/TB_trawl_data.rds"))
 
 ```
 
@@ -51,48 +51,10 @@ A suite of environmental data have been collected through <a href="https://lumco
 - Specific conductivity
 - Dissolved Oxygen
 
-```{r import environmental data, include = FALSE}
 
-  temp_paths <- list.files(path = "../data/", "*temp_*", full.names = TRUE)
-  temp_files <- lapply(temp_paths, read_csv, skip = 1,
-                       col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
-  
-  roundUP <- function(x,to=10){
-    to*(x%/%to + as.logical(x%%to))
-  }
-  
-  tempF_to_C <- function(F){(5/9)*(F-32)}
-  
-  temp_df <- bind_rows(temp_files) %>%
-    rename(datetime = 'TS', temp_F = 'F') %>%
-    mutate(yday = yday(datetime))
-  
-  do_paths <- list.files(path = "../data/", "*DO_*", full.names = TRUE)
-  do_files <- lapply(do_paths, read_csv, skip = 1,
-                     col_types = cols(TS = col_datetime(format = "%m/%d/%Y %H:%M")))
-  
-  do_df <- bind_rows(do_files) %>%
-    rename(datetime = 'TS', do_mg_L = 'mg L') %>%
-    mutate(yday = yday(datetime))
-  
-  hydro_paths <- list.files(path = "../data/", "hydro{1}.*.csv", full.names= TRUE)
-  hydro_files <- lapply(hydro_paths, read_csv, col_type = cols(ArrayID = col_skip(), Year = col_skip(), JDay= col_skip(),
-                                                               X4 = col_skip(), X5 = col_skip(), X6 = col_skip(), Time = col_skip(), X8 = col_skip(), `Date/Time` = col_character(),
-                                                               DO = col_skip(), Value4 = col_double(), Depth = col_skip(), `Depth feet` = col_skip()))
-  hydro_df <- bind_rows(hydro_files) %>%
-    rename(datetime = 'Date/Time', temp_C = 'Temp', temp_F = 'Water Temp F', spCon_uS_cm = 'Value4', sal_psu = 'Sal') %>%
-    mutate(datetime = parse_date_time(datetime, orders = c("%m/%d/%Y %H:%M", "%m/%d/%y %H:%M")),
-           yday = yday(datetime))
-env_long <- hydro_df %>% select(-yday, -temp_F) %>% bind_rows(temp_df %>% mutate(temp_C = tempF_to_C(temp_F)) %>% select(-yday, -temp_F)) %>%
-  full_join(do_df %>% select(-yday)) %>%
-  # full_join(temp_df %>% mutate(temp_C = tempF_to_C(temp_F))%>% select(-yday, - temp_F), all = TRUE) %>%
-  pivot_longer(cols = temp_C:do_mg_L, names_to = "env_var", values_to = "value")
-
-```
-
-These data vary in coverage and are being updated:
-
-`r knitr::include_graphics("../figures/env_facet_plot.png")`
+<!-- # These data vary in coverage and are being updated: -->
+<!-- #  -->
+<!-- # `r knitr::include_graphics("./figures/env_facet_plot.png")` -->
 
 There are a number of reasons for data holes and more complete data will be necessary for any final analyses, but this shows the emerging environmental picture.
 
@@ -156,8 +118,8 @@ spp_mod.df <- data.frame(trawls = sp1[["sites"]], richness = sp1[["richness"]], 
 
 ggplot(spp_mod.df, aes(x = trawls, y = richness)) + geom_path(size = 2, colour = 'red') +
   geom_ribbon(aes(x = trawls, ymin = (richness - 1.96*richness_sd), ymax = (richness + 1.96*richness_sd)), colour = "red", fill = "red", alpha = 0.5) +
-  scale_y_continuous(name = expression(Sigma~"species"), breaks = seq(0,roundUP(max(spp_mod.df$richness), to = 10), by = 10), labels = seq(0,roundUP(max(spp_mod.df$richness), to = 10), by = 10)) +
-  scale_x_continuous(name = "Trawls", breaks = seq(0,roundUP(max(spp_mod.df$trawls), to = 10), by = 20)) +
+  scale_y_continuous(name = expression(Sigma~"species"), breaks = seq(0,plyr::round_any(max(spp_mod.df$richness), accuracy = 10, f = ceiling), by = 10), labels = seq(0,plyr::round_any(max(spp_mod.df$richness),10, ceiling), by = 10)) +
+  scale_x_continuous(name = "Trawls", breaks = seq(0,plyr::round_any(max(spp_mod.df$trawls), 10, ceiling), by = 20)) +
   theme_minimal()
 
 ```
@@ -185,8 +147,8 @@ TB_trawl_taxasite_yr <- TB_trawl_commondate %>%
 
 ggplot(TB_trawl_taxasite_yr, aes(x = sites, y = richness, group = year, colour = year)) +
   geom_path(size = 1.5) +# geom_ribbon(aes(x = sites, ymin = (richness - 1.96*sd), ymax = (richness + 1.96*sd), fill = year), alpha = 0.2) +
-  scale_y_continuous(name = expression(Sigma~"species"),breaks = seq(0, roundUP(max(TB_trawl_taxasite_yr$richness), to = 10), by = 10), labels = seq(0, roundUP(max(TB_trawl_taxasite_yr$richness), to = 10), by = 10)) +
-  scale_x_continuous(name = "Trawls", breaks = seq(0, roundUP(max(TB_trawl_taxasite_yr$sites), to = 10), by = 5)) +
+  scale_y_continuous(name = expression(Sigma~"species"),breaks = seq(0, plyr::round_any(max(TB_trawl_taxasite_yr$richness), 10, ceiling), by = 10), labels = seq(0, plyr::round_any(max(TB_trawl_taxasite_yr$richness), 10, f = ceiling), by = 10)) +
+  scale_x_continuous(name = "Trawls", breaks = seq(0, plyr::round_any(max(TB_trawl_taxasite_yr$sites), 10, f = ceiling), by = 5)) +
   scale_colour_viridis(discrete = TRUE) + 
   scale_fill_viridis(discrete = TRUE) +
   theme_minimal()
@@ -202,11 +164,12 @@ We can start to break this down further, and the inference that species richness
 ```{r beta partition, include = TRUE, echo = FALSE, warning = FALSE, message= FALSE, fig.height= 8}
 
 #create time-accumulation df from trawl data
+total_richness = length(unique(TB_trawl_data$Common_name))
 TB_trawl_data %>%
-  filter(!duplicated(Common_name)) %>%
-  mutate(richness = 1:n(), 
-         Date = as.Date(Date),
-         richness = sort(richness))-> TB_time_accum
+  dplyr::filter(!duplicated(Common_name, nmax = total_richness )) %>%
+  dplyr::mutate(Date = as.Date(Date)) %>%
+  arrange(Date) %>%
+  dplyr::mutate(richness = 1:n())-> TB_time_accum
 
 TB_annual_accum <- TB_trawl_data %>%
   mutate(pres = 1) %>% group_by(year) %>%

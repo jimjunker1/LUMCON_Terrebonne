@@ -1,3 +1,4 @@
+here::here()
 here::i_am("packages.R")
 # Install pacman if it isn't already installed
 if ("pacman" %in% rownames(installed.packages()) == FALSE) install.packages("pacman")
@@ -18,7 +19,9 @@ pacman::p_load(git2r, httr, semver, testthat, yaml, here, EML, data.table,
                taxize)
 
 devtools::install_github(c("jimjunker1/junkR"))#, "ropensci/rfishbase"))
-devtools::install_github('MoBiodiv/mobr')
+# library(junkR)
+# devtools::install_github('MoBiodiv/mobr')
+library(mobr)
 
 
 theme_mod <<- function(){theme_bw() %+replace% theme(panel.grid = element_blank())}

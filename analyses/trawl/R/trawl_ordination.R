@@ -18,7 +18,7 @@ source(here::here("datascript.R"))#imports data with some minor cleanup
 
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
-  select(year, month, date_id, species_mod) %>%
+  dplyr::select(year, month, date_id, species_mod) %>%
   group_by(date_id, species_mod) %>%
   distinct() %>% 
   mutate(pres = 1) %>%
@@ -26,16 +26,18 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   ungroup()
 
 set.seed(123)
-TB_NMDS <- vegan::metaMDS(TB_trawl_taxasite %>% select(-c(1:2)) %>% column_to_rownames("date_id"), distance = "jaccard", trymax = 1000, autotransform = FALSE)
+TB_NMDS <- vegan::metaMDS(TB_trawl_taxasite %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), distance = "jaccard",
+                          try = 1000, trymax = 3000, maxit = 9999, autotransform = FALSE, parallel = 3)
 TB_NMDS
+vegan::stressplot(TB_NMDS)
 plot(TB_NMDS)
 
 TB_NMDS.scrs <- as.data.frame(scores(TB_NMDS, display = 'sites'))
-TB_NMDS.scrs <- TB_NMDS.scrs %>% bind_cols(TB_trawl_taxasite %>% select(1:2)) %>% mutate(year = factor(year))
+TB_NMDS.scrs <- TB_NMDS.scrs %>% bind_cols(TB_trawl_taxasite %>% dplyr::select(1,3:5)) %>% mutate(year = factor(year))
 TB_NMDS.spp <- as.data.frame(scores(TB_NMDS, display = "species"))
 
 set.seed(123)
-vec.spp <- envfit(TB_NMDS, TB_trawl_taxasite %>% select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 1000, na.rm = TRUE)
+vec.spp <- envfit(TB_NMDS, TB_trawl_taxasite %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 1000, na.rm = TRUE)
 vec.spp
 
 sig_spp = unname(which(vec.spp[['vectors']]$pvals < 0.001))
@@ -45,17 +47,17 @@ hulls <- ddply(TB_NMDS.scrs, "year", find_hull)
 
 # NMDS_plot <- 
 ggplot(TB_NMDS.scrs) +
-  geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, fill = year, colour = year), alpha = 0.3) +
+  # geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, fill = year, colour = year), alpha = 0.3) +
   geom_point(data = hulls, aes(x = NMDS1, y = NMDS2,  fill = year, colour = year), size = 2, shape = 21) +
   # geom_segment(data = spp.scrs, aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2), size = 1, 
   # arrow = arrow(length(unit(0.5, "cm")))) +
   ggrepel::geom_text_repel(data = spp.scrs, aes(x = NMDS1, y = NMDS2, label = species), fontface = "italic")+
-  scale_fill_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS.scrs$year)))])+
-  scale_colour_manual(name = "Year", values = ocecolors[['temperature']][seq(1,256, length.out = length(levels(TB_NMDS.scrs$year)))])
-
+  scale_fill_viridis(name = "Year", discrete = TRUE)+
+  scale_color_viridis(name = "Year", discrete = TRUE)
+  
 # create taxa by site matrix with common names
 TB_trawl_commonsite <- TB_trawl_data %>%
-  select(year, month, date_id, Common_name) %>%
+  dplyr::select(year, month, date_id, Common_name) %>%
   group_by(date_id, Common_name) %>%
   distinct() %>% 
   mutate(pres = 1) %>%
@@ -63,16 +65,16 @@ TB_trawl_commonsite <- TB_trawl_data %>%
   ungroup()
 
 set.seed(123)
-TB_NMDS_common <- vegan::metaMDS(TB_trawl_commonsite %>% select(-c(1:2)) %>% column_to_rownames("date_id"), distance = 'jaccard', trymax = 1000, autotransform = FALSE)
+TB_NMDS_common <- vegan::metaMDS(TB_trawl_commonsite %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), distance = 'jaccard', trymax = 1000, autotransform = FALSE)
 TB_NMDS_common
 plot(TB_NMDS_common)
 
 TB_NMDS_common.scrs <- as.data.frame(scores(TB_NMDS_common, display = 'sites'))
-TB_NMDS_common.scrs <- TB_NMDS_common.scrs %>% bind_cols(TB_trawl_commonsite %>% select(1:2)) %>% mutate(year = factor(year))
+TB_NMDS_common.scrs <- TB_NMDS_common.scrs %>% bind_cols(TB_trawl_commonsite %>% dplyr::select(1:2)) %>% mutate(year = factor(year))
 TB_NMDS_common.spp <- as.data.frame(scores(TB_NMDS_common, display = "species"))
 
 set.seed(123)
-vec.common_spp <- envfit(TB_NMDS_common, TB_trawl_commonsite %>% select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 1000, na.rm = TRUE)
+vec.common_spp <- envfit(TB_NMDS_common, TB_trawl_commonsite %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 1000, na.rm = TRUE)
 vec.common_spp
 
 set.seed(123)
@@ -119,16 +121,16 @@ TB_trawl_outlier_rm <- TB_trawl_commonsite %>%
   filter(date_id %ni% c("2018-1","2007-7"))
 
 set.seed(100)
-TB_NMDS_common_out <- vegan::metaMDS(TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id"), distance = 'jaccard', trymax = 5000, autotransform = FALSE)
+TB_NMDS_common_out <- vegan::metaMDS(TB_trawl_outlier_rm %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), distance = 'jaccard', trymax = 5000, autotransform = FALSE)
 TB_NMDS_common_out
 plot(TB_NMDS_common_out)
 
 TB_NMDS_common_out.scrs <- as.data.frame(scores(TB_NMDS_common_out, display = 'sites'))
-TB_NMDS_common_out.scrs <- TB_NMDS_common_out.scrs %>% bind_cols(TB_trawl_outlier_rm %>% select(1:2)) %>% mutate(year = factor(year), month = factor(month))
+TB_NMDS_common_out.scrs <- TB_NMDS_common_out.scrs %>% bind_cols(TB_trawl_outlier_rm %>% dplyr::select(1:2)) %>% mutate(year = factor(year), month = factor(month))
 TB_NMDS_common_out.spp <- as.data.frame(scores(TB_NMDS_common_out, display = "species"))
 
 set.seed(123)
-vec.common_out_spp <- envfit(TB_NMDS_common_out, TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 5000, na.rm = TRUE)
+vec.common_out_spp <- envfit(TB_NMDS_common_out, TB_trawl_outlier_rm %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 5000, na.rm = TRUE)
 vec.common_out_spp
 
 set.seed(123)
@@ -159,7 +161,7 @@ year_surf_out.na = as.data.frame(na.omit(year_surf_out.mite))
 yr_hulls <- ddply(TB_NMDS_common_out.scrs, "year", find_hull)
 mth_hulls <- ddply(TB_NMDS_common_out.scrs, "month", find_hull)
 # yr_common_out_NMDS_plot <-
-  ggplot(TB_NMDS_common_out.scrs %>% select(-month))+
+  ggplot(TB_NMDS_common_out.scrs %>% dplyr::select(-month))+
   geom_point(aes(x = NMDS1, y = NMDS2, colour = year), size = 2) +
   geom_point(data = year_centroid_out, aes(x = NMDS1, y = NMDS2, fill = year), shape = 21, size = 3, colour = "black") +
     geom_path(data = year_centroid_out, aes(x = NMDS1, y = NMDS2), size =1 , colour = 'darkgrey')+
@@ -168,7 +170,7 @@ mth_hulls <- ddply(TB_NMDS_common_out.scrs, "month", find_hull)
   
     
 #mnth_common_out_NMDS_plot <-
-  ggplot(TB_NMDS_common_out.scrs %>% select(-year))+
+  ggplot(TB_NMDS_common_out.scrs %>% dplyr::select(-year))+
     geom_point(aes( x= NMDS1, y = NMDS2, colour = month), size = 2) +
     geom_point(data = month_centroid_out, aes(x = NMDS1, y = NMDS2, fill = month), shape = 21, size = 3, colour = "black") +
     geom_point(data = month_centroid_out, aes(x = NMDS1, y = NMDS2), size = 1, colour = "darkgrey") #+
@@ -177,7 +179,7 @@ mth_hulls <- ddply(TB_NMDS_common_out.scrs, "month", find_hull)
     
   
   common_out_NMDS_plot <-
-  ggplot(TB_NMDS_common_out.scrs %>% select(-month)) +
+  ggplot(TB_NMDS_common_out.scrs %>% dplyr::select(-month)) +
   # stat_contour(data = year_surf_out.na, aes(x = NMDS1, y = NMDS2, z = z), colour = 'grey', binwidth = 1)+
   # geom_polygon(data = hulls, aes(x = NMDS1, y = NMDS2, fill = year, colour = year), alpha = 0.3) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = year), size = 2)+
@@ -200,19 +202,19 @@ dev.off()
 #### working with abundance data ####
 TB_trawl_taxasite_N <- TB_trawl_data %>%
   filter(date_id %ni% c("2018-1","2007-7"))%>%
-  select(year, month, date_id, Common_name, Abundance) %>%
+  dplyr::select(year, month, date_id, Common_name, Abundance) %>%
   na.omit() %>%
   group_by(year, month, date_id, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%
   ungroup() %>%
   group_by(date_id) %>%
   mutate(rel_abun = Abundance/sum(Abundance)) %>%
-  select(year, month, date_id, Common_name, rel_abun) %>%
+  dplyr::select(year, month, date_id, Common_name, rel_abun) %>%
   pivot_wider(names_from = Common_name, values_from = rel_abun, values_fill = list(rel_abun = 0)) %>%
   ungroup() 
 
 #Hellinger pre-transformation of the species matrix
-TB_trawl_taxasite_Ntrans <- decostand (TB_trawl_taxasite_N %>% select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
+TB_trawl_taxasite_Ntrans <- decostand (TB_trawl_taxasite_N %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
 
 set.seed(123)
 TB_relN_NMDS <- vegan::metaMDS(TB_trawl_taxasite_Ntrans, distance = "bray", trymax = 1000, autotransform = FALSE)
@@ -220,11 +222,11 @@ TB_relN_NMDS
 plot(TB_relN_NMDS )
 
 TB_relN_NMDS.scrs <- as.data.frame(scores(TB_relN_NMDS, display = 'sites'))
-TB_relN_NMDS.scrs <- TB_relN_NMDS.scrs %>% bind_cols(TB_trawl_taxasite_N  %>% select(1:2)) %>% mutate(year = factor(year))
+TB_relN_NMDS.scrs <- TB_relN_NMDS.scrs %>% bind_cols(TB_trawl_taxasite_N  %>% dplyr::select(1:2)) %>% mutate(year = factor(year))
 TB_relN_NMDS.spp <- as.data.frame(scores(TB_relN_NMDS, display = "species"))
 
 set.seed(123)
-vec.spp <- envfit(TB_relN_NMDS, TB_trawl_taxasite_N  %>% select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 5000, na.rm = TRUE)
+vec.spp <- envfit(TB_relN_NMDS, TB_trawl_taxasite_N  %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), permutations = 5000, na.rm = TRUE)
 vec.spp
 
 set.seed(123)

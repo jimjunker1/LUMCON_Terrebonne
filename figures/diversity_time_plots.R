@@ -8,8 +8,8 @@
   scale_y_continuous(name = "Species Richness")+
   scale_colour_manual(name = "", values = viridis(4)[c(2,3)]) +
   theme(legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(fill = "transparent", colour = NA),
-        axis.title.x = element_blank(), axis.text.x = element_blank(),
-        legend.spacing.y = unit(-0.1, 'cm'))
+        # axis.title.x = element_blank(), axis.text.x = element_blank(),
+        legend.spacing.y = unit(-0.1, 'cm'));rich_time
 
  jaccard_time <-
   ggplot(beta_df, aes(x = Date, y = value, group = partition)) + 

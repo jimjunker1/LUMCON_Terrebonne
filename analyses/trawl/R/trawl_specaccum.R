@@ -1,9 +1,10 @@
-
+source(here::here('datascript.R'))
 # Full species accumulation curve (SAC)
 
 ##create taxa by site matrix
 TB_trawl_commonsite <- TB_trawl_data %>%
   dplyr::select(year, month, date_id, Common_name) %>%
+  dplyr::filter(year!="2021") %>%
   group_by(date_id, Common_name) %>%
   distinct() %>% 
   mutate(pres = 1) %>%
@@ -21,6 +22,7 @@ source("./figures/SAC_full_plot.R");SAC_full_plot()
 ## SAC for each year
 TB_trawl_commondate <- TB_trawl_data %>%
   select(year, Date, Common_name) %>%
+  dplyr::filter(year %ni% c("2020","2021")) %>%
   group_by(Date, Common_name) %>%
   distinct() %>% 
   mutate(pres = 1) %>%
@@ -40,32 +42,42 @@ TB_trawl_taxasite_yr <- TB_trawl_commondate %>%
 source("./figures/SAC_yr_plot.R");SAC_yr_plot()
 
 #create time-accumulation df from trawl data
+total_richness = length(unique(TB_trawl_data$Common_name))
+saveRDS(total_richness, here::here("data/total_richness.rds"))
+
 TB_trawl_data %>%
-  filter(!duplicated(Common_name)) %>%
-  mutate(richness = 1:n(), 
-         Date = as.Date(Date),
-         richness = sort(richness))-> TB_time_accum
+  # exclude 2020 & 2021
+  dplyr::filter(year %ni% c("2020","2021")) %>%
+  dplyr::filter(!duplicated(Common_name, nmax = total_richness )) %>%
+  dplyr::mutate(Date = as.Date(Date)) %>%
+  arrange(Date) %>%
+  dplyr::mutate(richness = 1:n())-> TB_time_accum
 
 TB_annual_accum <- TB_trawl_data %>%
+  # exclude 2020 & 2021
+  dplyr::filter(year %ni% c("2020","2021")) %>%
   mutate(pres = 1) %>% group_by(year) %>%
   filter(!duplicated(Common_name)) %>%
   summarise(richness = sum(pres)) %>%
-  mutate(Date = as.Date(as.character(year), format = "%Y", origin = "2000-01-01"))
+  mutate(Date = as.Date(paste(as.character(year),"01","01", sep = "-"), format = "%Y-%m-%d", origin = "2000-01-01"))
+
 
 # partition beta diversity into nestedness and turnover #
 # uses `betapart` package #
 TB_time_df <- TB_time_accum %>%
-  select(Date, year, richness) %>%
+  dplyr::select(Date, year, richness) %>%
   mutate(data_type = 'continuous') %>%
   bind_rows(TB_annual_accum %>% mutate(data_type = "annual"))
 
 #create moving jaccard calc by year-month
 # create a dataframe for time series of distance compared to first sampling 
 unique_combinations <- expand.grid(date_A = unique(levels(as.factor(TB_trawl_commonsite$date_id))), 
-                                   Date = unique(levels(as.factor(TB_trawl_commonsite$date_id)))) %>%
-  filter(date_A == as.character(min(TB_trawl_commonsite$date_id)))
+                                   Date = unique(levels(as.factor(TB_trawl_commonsite$date_id)))) #%>%
+  # filter(date_A == as.character(min(TB_trawl_commonsite$date_id)))
 
-TB_date_jaccard = vegdist((TB_trawl_commonsite %>% select(-year, -month) %>% 
+
+
+TB_date_jaccard = vegdist((TB_trawl_commonsite %>% dplyr::select(-year, -month) %>% 
                              column_to_rownames("date_id")), method = "jaccard") %>%
   as.matrix %>% as.data.frame %>% rownames_to_column("date_A") %>% 
   pivot_longer(cols = 2:dim(.)[2], names_to = "Date", values_to = "jaccard") %>%

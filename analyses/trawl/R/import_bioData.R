@@ -1,5 +1,5 @@
-import_bioData <- function(){
-   source(here::here("R/clean_trawl_spp.R"))
+# import_bioData <- function(){
+   # source(here::here("R/clean_trawl_spp.R"))
 # 2020-05-12 
 # these are throwing errors and not loading due to network timeout. May need to reset/update DNS servers if this continues.
 
@@ -17,21 +17,26 @@ import_bioData <- function(){
    # options(gargle_oauth_email = "jjunker@lumcon.edu")
    gs4_auth(email = "jjunker@lumcon.edu")
    # gs4_deauth()
-   TB_trawl_meta <- gs4_get("1mUG6oYBGGONBzgXPsvS6XZkNRUIojxtI7BV8WUTh-3I")#sheetID extracted with as_sheets_ID(*sheet URL*)
-   TB_trawl_tabs <- nrow(TB_trawl_meta[['sheets']])
-   TB_trawl_list <- vector('list', TB_trawl_tabs)
-   for(tab in 1:TB_trawl_tabs){
-     TB_trawl_list[[tab]] <- sheets_read(TB_trawl_meta[['spreadsheet_id']], sheet = tab, col_types = "T?d", range = cell_cols("A:C"))
-   }
-   TB_trawl_data <- bind_rows(TB_trawl_list) %>% dplyr::select(Date, Species, Abundance)
+   TB_trawl_worksheet <- gs4_get("1mUG6oYBGGONBzgXPsvS6XZkNRUIojxtI7BV8WUTh-3I")#sheetID extracted with as_sheets_ID(*sheet URL*)
+   # get the tab indices for years, excluding any metadata tabs
+   TB_trawl_tabs <- googlesheets4::sheet_names(TB_trawl_worksheet)
+   TB_trawl_tabs <- TB_trawl_tabs[!grepl("metadata",TB_trawl_worksheet[['sheets']]$name, ignore.case = TRUE)]
+   
+   # read in from all spreadsets
+  
+ TB_trawl_data <- lapply(TB_trawl_tabs, function(x){
+      googlesheets4::read_sheet(TB_trawl_worksheet, sheet = x, col_types = "Dcd-")
+   }) %>% bind_rows %>%
+      dplyr::select(Date, Species, Abundance)
 #
 ##### Data entry fixes ####
    TB_trawl_data <- TB_trawl_data %>%
     filter(!is.na(Species)) %>%
-    mutate(Species = str_replace(Species,"spp(?!\\.)","spp."),
+    mutate(Species = stringr::str_replace(Species,"spp(?!\\.)","spp."),
+           Species = gsub( "mix|- mix|- mixed| mixed","",Species, ignore.case = TRUE),
            species_mod = case_when(grepl("Litopanaeus|Litopenaeus|Farfantepenaeus|Farfantepanaeus|Farfantapenaeus", Species, ignore.case = TRUE) ~ "Litopenaeus setiferus/Farfantepenaeus aztecus,White Shrimp/Brown Shrimp",
                                    grepl("Ariopsis felis|Ariopsisis|Ariosis|Bagre", Species) ~ "Ariopsis felis/Bagre marinus, Hardhead Catfish/Gafftopsail Catfish",
-                                   grepl("Family Naticidae", Species) ~ "Family: Naticidae/Uropsalpinx cinerea, Moon Snail/Oyster drill snail",
+                                   grepl("Family Naticidae", Species) ~ "Family: Naticidae/Urosalpinx cinerea, Moon Snail/Oyster drill snail",
                                    grepl("midshipmen", Species) ~ "Porichthys plectrodon, Atlantic Midshipman",
                                    grepl("shimp", Species) ~ "Litopenaeus setiferus/Farfantepenaeus aztecus,White Shrimp/Brown Shrimp",
                                    grepl("Puffer", Species, ignore.case = TRUE) ~ "Sphoeroides parvus, Least Pufferfish",
@@ -203,19 +208,30 @@ import_bioData <- function(){
                       "Blacktip Shark"
   )
    commonkey <- setNames(rep(common_names, lengths(species_names)), unlist(species_names))
+   
    TB_trawl_data <<- TB_trawl_data %>%
-    mutate(species_mod = recode(species_mod, !!!keyval),
+    mutate(Date = as.Date(Date, origin = "2007-01-05"),
+           species_mod = recode(species_mod, !!!keyval),
            Common_name = recode(Common_name, !!!commonkey),
-            date_id = paste0(as.character(year),"-",as.character(month)))
-
+           date_id = paste0(as.character(year),"-",as.character(month)))
+   
+   
+   
+# unique(as.factor(TB_trawl_data$species_mod))
 #### End scientific and common name fixes #### 
 #### Confirm Species and Common names from taxonomic databases
-   debugonce(clean_trawl_spp)
-   new_spp =  TB_trawl_data %>% clean_trawl_spp(spp_col = "species_mod", common_col = "Common_name",
-                                     taxonomy_list = here::here("data/taxonomy_valid_common.rds")) %>% unique
    
+trawl_spp_parse <- taxize::gn_parse(TB_trawl_data %>%
+                                          dplyr::select(species_mod) %>%
+                                          flatten %>%
+                                          gsub("Order: |Family: |Superfamily: |Class: |Phylum: ","",.) %>%
+                                          unique)
+
 #### End Data entry fixes ####
- saveRDS(TB_trawl_data, file = "./data/TB_trawl_data.rds")
+### SAve objects ####
+ saveRDS(TB_trawl_data, file = here::here("data/TB_trawl_data.rds"))
  biology_sysDate = Sys.Date()
- save(biology_sysDate, file = "./data/biology_sysDate.rda")
-}
+ save(biology_sysDate, file = here::here("data/biology_sysDate.rda"))
+ saveRDS(trawl_spp_parse, file = here::here("data/trawl_spp_parse.rds"))
+
+rm(list = ls()[ls() %ni% "TB_trawl_data"])

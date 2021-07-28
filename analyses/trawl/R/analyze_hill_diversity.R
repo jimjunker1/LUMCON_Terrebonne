@@ -5,8 +5,36 @@
 ##' @title
 ##' @param ann_spp_flux_boots
 
-analyze_hill_diversity <- function(ann_spp_flux_summary = flux_summaries[["annual_spp_flux_summary"]]){ #  ann_spp_flux_boots = flux_summaries[["annual_spp_flux_boots"]], ann_spp_flux_summary = flux_summaries[["annual_spp_flux_summary"]]) {
-  
+here::i_am("analyses/trawl/R/analyze_hill_diversity.R")
+library(hillR)
+
+##create taxa by site matrix
+TB_trawl_taxasite <- TB_trawl_data %>%
+  dplyr::select(Date, Common_name, Abundance) %>%
+  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  group_by(Date, Common_name) %>%
+  summarise(Abundance = sum(Abundance)) %>%
+  na.omit %>% group_by(Date) %>%
+  # remove trawls with less than 10 individuals 
+  dplyr::filter(sum(Abundance) >=10) %>%
+  group_by(Date, Common_name) %>%
+  pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
+  ungroup() %>%
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+                biweekly = ceiling(julian_date/30),
+                month = month(Date),
+                year = year(Date)) %>%
+  dplyr::select(julian_date, Date,year, month, biweekly, everything())
+
+## Estimated qD = 2 for all communities
+
+hillR::hill_taxa(TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly), q = 2) %>% 
+  data.frame %>% dplyr::mutate(Date = TB_trawl_taxasite$Date) %>%
+  ggplot(aes(x =Date, y =.)) +
+  geom_point()+
+  geom_line()
+
+plot(site_hill2)
   ## ++++ Helper functions ++++ ##
   #'
   #'
