@@ -71,14 +71,15 @@ TB_time_df <- TB_time_accum %>%
 
 #create moving jaccard calc by year-month
 # create a dataframe for time series of distance compared to first sampling 
-unique_combinations <- expand.grid(date_A = unique(levels(as.factor(TB_trawl_commonsite$date_id))), 
-                                   Date = unique(levels(as.factor(TB_trawl_commonsite$date_id)))) #%>%
-  # filter(date_A == as.character(min(TB_trawl_commonsite$date_id)))
+unique_combinations <- expand.grid(date_A = unique(levels(as.factor(TB_trawl_taxasite$Date))), 
+                                   Date = unique(levels(as.factor(TB_trawl_taxasite$Date)))) %>%
+   filter(date_A == as.character(min(TB_trawl_taxasite$Date)))
 
 
-
-TB_date_jaccard = vegdist((TB_trawl_commonsite %>% dplyr::select(-year, -month) %>% 
-                             column_to_rownames("date_id")), method = "jaccard") %>%
+?betapart
+TB_date_jaccard = vegdist((TB_trawl_taxasite %>% dplyr::select(-julian_date:-month) %>% 
+                             group_by('biweekly')
+                             column_to_rownames("biweekly")), method = "jaccard") %>%
   as.matrix %>% as.data.frame %>% rownames_to_column("date_A") %>% 
   pivot_longer(cols = 2:dim(.)[2], names_to = "Date", values_to = "jaccard") %>%
   inner_join(unique_combinations) %>% filter(date_A != Date) %>% 

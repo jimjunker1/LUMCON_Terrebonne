@@ -3,7 +3,6 @@
 ##' .. content for \details{} ..
 ##'
 ##' @title
-##' @param ann_spp_flux_boots
 
 here::i_am("analyses/trawl/R/analyze_hill_diversity.R")
 library(hillR)
@@ -27,12 +26,31 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(julian_date, Date,year, month, biweekly, everything())
 
 ## Estimated qD = 2 for all communities
+biweekly_sampling = TB_trawl_taxasite %>%
+  group_by(biweekly) %>%
+  dplyr::summarise(n = n()) %>%
+  right_join(TB_trawl_taxasite %>% dplyr::select(Date, ))
 
-hillR::hill_taxa(TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly), q = 2) %>% 
-  data.frame %>% dplyr::mutate(Date = TB_trawl_taxasite$Date) %>%
-  ggplot(aes(x =Date, y =.)) +
-  geom_point()+
-  geom_line()
+trawl_qD = hillR::hill_taxa(TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly), q = 2) %>% 
+  data.frame %>% dplyr::mutate(Date = TB_trawl_taxasite$Date,
+                               qD= 2) %>% 
+  bind_rows(
+hillR::hill_taxa(TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly), q= 1) %>%
+  data.frame %>% dplyr::mutate(Date = TB_trawl_taxasite$Date,
+                               qD = 1)) %>%
+  bind_rows(hillR::hill_taxa(TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly), q= 0) %>%
+              data.frame %>% dplyr::mutate(Date = TB_trawl_taxasite$Date,
+                                           qD = 0))
+
+ggplot(trawl_qD, aes(x =Date, y =., group = qD, color = qD)) +
+  geom_point(size = 2, alpha = 0.5)+
+  geom_line(alpha = 0.5)+
+  geom_smooth( se = FALSE, span = 0.1)+
+  scale_y_continuous(limits = c(0,10))
+
+
+
+
 
 plot(site_hill2)
   ## ++++ Helper functions ++++ ##

@@ -29,6 +29,36 @@ theme_set(theme_mod());rm(theme_mod)
 find_hull <<- function(df) df[chull(df$NMDS1, df$NMDS2),]
 
 '%ni%' <<- Negate('%in%')
+# bootstrapped sampling for estimating variability withing groups
+boot_sample_groups = function(abund_mat, group_var, qD, n_perm,...) {
+  boot_list = vector('list', n_perm)
+  
+  # sample rows and calculate abundance vector
+  sample_hill = function(boot_n,...){
+    sample_dat = by(abund_mat, INDICES = abund_mat[,group_var], FUN = sample_frac,
+                  replace = TRUE)
+    class(sample_dat) = "list"
+    sample_dat = bind_rows(sample_dat)
+  
+  agg_groups = stats::aggregate(sample_dat[,-1], by = sample_dat[,1],
+                               FUN = 'sum')
+  
+  group_col = agg_groups[,group_var]
+  qD_col = paste0("q",parse(text = qD))
+  boot_col = paste0("boot", parse(text = boot_n))
+  
+  dat_groups = agg_groups %>% 
+    apply(., 1, function(x) hillR::hill_taxa(comm = x, q = qD))%>%
+    bind_cols(group_col,.) %>%
+    setNames(., c(group_var, qD_col)) %>%
+    dplyr::mutate(boot_id = boot_col)
+    
+  return(dat_groups)
+  }
+  # debugonce(sample_hill)
+  boot_list = purrr::map(1:n_perm, ~sample_hill(boot_n = .x)) %>% bind_rows
+  return(boot_list)
+}
 
 # yday_summary <<- function(data,...){
 #   if("yday" %in% colnames(data)){

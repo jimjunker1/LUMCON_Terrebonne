@@ -26,5 +26,6 @@ This document outlines the workflow for the initial trawl analysis. The first ma
 
 1. "packages.R"
 2. "datascript.R" (sourcing this document will call the 'packages.R' script)
-3. "trawl_rarefaction.R"
+3. "analyze_rarefaction.R"
 4. "trawl_specaccum.R"
+5. "analyze_hill_diversity.R"

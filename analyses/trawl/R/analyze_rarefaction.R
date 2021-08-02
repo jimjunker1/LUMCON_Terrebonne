@@ -30,6 +30,10 @@ TB_trawl_sampling = TB_trawl_data %>%
 min(TB_trawl_sampling$year, na.rm = TRUE)
 
 TB_trawl_sampling %>% slice_min(trawl_days) %>% dplyr::select(year) %>% unlist
+ ## Explore the (dis)similarities at different timescales
+
+
+
 # trawl_rarefaction analysis
 r = 2
 trawl_sum = rowSums(TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly))
@@ -43,11 +47,18 @@ full_stats = mobr::calc_biodiv(TB_trawl_taxasite %>% dplyr::select(-julian_date:
                   extrapolate = T,
                   return_NA = F)
 
+## Run the mobr to estimate w
+
+
+
 
 trawl_mob_in = mobr::make_mob_in(comm = TB_trawl_taxasite %>% dplyr::select(-julian_date:-biweekly),
                                  plot_attr = TB_trawl_taxasite %>% dplyr::select(julian_date:biweekly),
-                                 coord_names = "biweekly",
+                                 coord_names = "julian_date",
                                  latlong = FALSE)
+
+mobr::plot_rarefaction(trawl_mob_in, group_var = 'year', method = 'sSBR', )
+
 trawl_mob_stats = mobr::get_mob_stats(trawl_mob_in, group_var = 'year', index = c("N", "S", "S_asymp", "S_n", "S_PIE", "PIE"), effort_samples = n_year, extrapolate = TRUE, boot_groups = TRUE, n_perm = 199)
 # trawl_mob_stats = mobr::get_mob_stats(trawl_mob_in, group_var = 'year', index = c("N", "S", "S_asymp", "S_n", "S_PIE", "PIE"), extrapolate = TRUE)
 x = trawl_mob_stats$groups_stats
