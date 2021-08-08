@@ -195,91 +195,7 @@ draw_dis_spe <- function(data, title_name, type = "tax"){
   return(g)
 }
 
-######plot tree (see the phylogenetic tree in Figure 1)#### 
-plot.phylog <- function (x, y = NULL,
-                         f.phylog = 0.5, cleaves = 1, cnodes = 0,
-                         labels.leaves = names(x$leaves), clabel.leaves = 1,
-                         labels.nodes = names(x$nodes), clabel.nodes = 0,
-                         sub = "", csub = 1.25, possub = "bottomleft", draw.box = FALSE, ...)
-{
-  if (!inherits(x, "phylog")) 
-    stop("Non convenient data")
-  leaves.number <- length(x$leaves)
-  leaves.names <- names(x$leaves)
-  nodes.number <- length(x$nodes)
-  nodes.names <- names(x$nodes)
-  if (length(labels.leaves) != leaves.number) labels.leaves <- names(x$leaves)
-  if (length(labels.nodes) != nodes.number) labels.nodes <- names(x$nodes)
-  leaves.car <- gsub("[_]"," ",labels.leaves)
-  nodes.car <- gsub("[_]"," ",labels.nodes)
-  mar.old <- par("mar")
-  on.exit(par(mar=mar.old))
-  
-  par(mar = c(0.1, 0.1, 0.1, 0.1))
-  
-  if (f.phylog < 0.05) f.phylog <- 0.05 
-  if (f.phylog > 0.95) f.phylog <- 0.95 
-  
-  maxx <- max(x$droot)
-  plot.default(0, 0, type = "n", xlab = "", ylab = "", xaxt = "n", 
-               yaxt = "n", xlim = c(-maxx*0.15, maxx/f.phylog), ylim = c(-0.05, 1), xaxs = "i", 
-               yaxs = "i", frame.plot = FALSE)
-  
-  x.leaves <- x$droot[leaves.names]
-  x.nodes <- x$droot[nodes.names]
-  if (is.null(y)) y <- (leaves.number:1)/(leaves.number + 1)
-  else y <- (leaves.number+1-y)/(leaves.number+1)
-  names(y) <- leaves.names
-  xcar <- maxx*1.05
-  xx <- c(x.leaves, x.nodes)
-  
-  if (clabel.leaves > 0) {
-    for (i in 1:leaves.number) {
-      text(xcar, y[i], leaves.car[i], adj = 0, cex = par("cex") * 
-             clabel.leaves)
-      #segments(xcar, y[i], xx[i], y[i], col = grey(0.7))
-    }
-  }
-  yleaves <- y[1:leaves.number]
-  xleaves <- xx[1:leaves.number]
-  if (cleaves > 0) {
-    for (i in 1:leaves.number) {
-      points(xx[i], y[i], pch = 21, bg=1, cex = par("cex") * cleaves)
-    }
-  }
-  yn <- rep(0, nodes.number)
-  names(yn) <- nodes.names
-  y <- c(y, yn)
-  for (i in 1:length(x$parts)) {
-    w <- x$parts[[i]]
-    but <- names(x$parts)[i]
-    y[but] <- mean(y[w])
-    b <- range(y[w])
-    segments(xx[but], b[1], xx[but], b[2])
-    x1 <- xx[w]
-    y1 <- y[w]
-    x2 <- rep(xx[but], length(w))
-    segments(x1, y1, x2, y1)
-  }
-  if (cnodes > 0) {
-    for (i in nodes.names) {
-      points(xx[i], y[i], pch = 21, bg="white", cex = cnodes)
-      
-    }
-  }
-  #if (clabel.nodes > 0) {
-  text(xx[names(x.nodes)], y[names(x.nodes)], nodes.car, 
-       clabel.nodes, col = 2 , pos = 4)
-  #}
-  x <- (x.leaves - par("usr")[1])/(par("usr")[2]-par("usr")[1])
-  y <- y[leaves.names]
-  xbase <- (xcar - par("usr")[1])/(par("usr")[2]-par("usr")[1])
-  if (csub>0) scatterutil.sub(sub, csub=csub, possub=possub)
-  if (draw.box) box()
-  if (cleaves > 0) points(xleaves, yleaves, pch = 21, bg=1, cex = par("cex") * cleaves)
-  
-  return(invisible(list(xy=data.frame(x=x, y=y), xbase= xbase, cleaves=cleaves)))
-}
+
 
 ###################################################################################
 #
@@ -287,33 +203,33 @@ plot.phylog <- function (x, y = NULL,
 #
 ####################################################################################
 ######arrange data######
-data1 <- read.table("Alpine_relative_abundance_data.txt")
-tree <- read.table("Alpine_phylo_tree.txt", header = F)[1,1]
-tree1 <- newick2phylog(tree)
-plot.phylog(tree1,
-            draw.box = TRUE, labels.nodes = names(tree1$nodes), clabel.leaves = 1, clabel.nodes = 1)
+ # data1 <- read.table("Alpine_relative_abundance_data.txt")
+# tree <- read.table("Alpine_phylo_tree.txt", header = F)[1,1]
+# tree1 <- newick2phylog(tree)
+# plot.phylog(tree1,
+#             draw.box = TRUE, labels.nodes = names(tree1$nodes), clabel.leaves = 1, clabel.nodes = 1)
 
-
-######caculate the contribution of each species to taxonomic dissimarity and then plot #####
-t01 <- t(dis1(data1, 0, type = "tax", type2 = "species"))
-t11 <- t(dis1(data1, 1, type = "tax", type2 = "species"))
-t21 <- t(dis1(data1, 2, type = "tax", type2 = "species"))
-
-tax_UqN_r <- cbind(t01[, 1], t11[, 1], t21[, 1])
-tax_CqN_r <- cbind(t01[, 2], t11[, 2], t21[, 2])
-draw_dis_spe(tax_UqN_r, "Jaccard-type taxonomic dissimilarity")
-draw_dis_spe(tax_CqN_r, "Sorensen-type taxonomic dissimilarity")
-
-######caculate the contribution of each species/node to phylogenetic dissimarity and then plot #####
-
-p01 <- t(dis1(data1, 0, type = "phy", type2 = "species", tree = tree1))
-p11 <- t(dis1(data1, 1, type = "phy", type2 = "species", tree = tree1))
-p21 <- t(dis1(data1, 2, type = "phy", type2 = "species", tree = tree1))
-
-phy_UqN_r <- cbind(p01[, 1], p11[, 1], p21[, 1])
-phy_CqN_r <- cbind(p01[, 2], p11[, 2], p21[, 2])
-
-draw_dis_spe(phy_UqN_r, "Jaccard-type phylogenetic dissimilarity", type = "phy")
-draw_dis_spe(phy_CqN_r, "Sorensen-type phylogenetic dissimilarity", type = "phy")
+# 
+# ######caculate the contribution of each species to taxonomic dissimarity and then plot #####
+# t01 <- t(dis1(data1, 0, type = "tax", type2 = "species"))
+# t11 <- t(dis1(data1, 1, type = "tax", type2 = "species"))
+# t21 <- t(dis1(data1, 2, type = "tax", type2 = "species"))
+# 
+# tax_UqN_r <- cbind(t01[, 1], t11[, 1], t21[, 1])
+# tax_CqN_r <- cbind(t01[, 2], t11[, 2], t21[, 2])
+# draw_dis_spe(tax_UqN_r, "Jaccard-type taxonomic dissimilarity")
+# draw_dis_spe(tax_CqN_r, "Sorensen-type taxonomic dissimilarity")
+# 
+# ######caculate the contribution of each species/node to phylogenetic dissimarity and then plot #####
+# 
+# p01 <- t(dis1(data1, 0, type = "phy", type2 = "species", tree = tree1))
+# p11 <- t(dis1(data1, 1, type = "phy", type2 = "species", tree = tree1))
+# p21 <- t(dis1(data1, 2, type = "phy", type2 = "species", tree = tree1))
+# 
+# phy_UqN_r <- cbind(p01[, 1], p11[, 1], p21[, 1])
+# phy_CqN_r <- cbind(p01[, 2], p11[, 2], p21[, 2])
+# 
+# draw_dis_spe(phy_UqN_r, "Jaccard-type phylogenetic dissimilarity", type = "phy")
+# draw_dis_spe(phy_CqN_r, "Sorensen-type phylogenetic dissimilarity", type = "phy")
 
 ##################################################

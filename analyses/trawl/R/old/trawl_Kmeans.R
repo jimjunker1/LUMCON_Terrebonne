@@ -1,7 +1,9 @@
+BiocManager::install("ggtree")
+
 #trawl K-means analysis of fish data
 # create taxa by site matrix with common names
 TB_trawl_commonsite <- TB_trawl_data %>%
-  select(year, month, date_id, Common_name) %>%
+  dplyr::select(year, month, date_id, Common_name) %>%
   group_by(date_id, Common_name) %>%
   distinct() %>% 
   mutate(pres = 1) %>%
@@ -16,7 +18,7 @@ TB_trawl_outlier_rm <- TB_trawl_commonsite %>%
 ###Legendre PC with Hellinger
 
 #Hellinger pre-transformation of the species matrix
-tb.h <- decostand (TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
+tb.h <- decostand (TB_trawl_outlier_rm %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id"), "hellinger")
 tb.h.pca <- rda(tb.h)
 tb.h.pca.summ <- summary(tb.h.pca)
 
@@ -72,7 +74,7 @@ ggplot(data = TB, aes(x=PC1, y=PC2, color=as.factor(year))) +
   scale_colour_viridis(discrete = TRUE)
 
 ###Cluster Analysis
-spe <- TB_trawl_outlier_rm %>% select(-c(1:2)) %>% column_to_rownames("date_id")
+spe <- TB_trawl_outlier_rm %>% dplyr::select(-c(1:2)) %>% column_to_rownames("date_id")
 spe.norm <- decostand(spe, "normalize")
 spe.ch <- vegdist(spe.norm, "euc") 
 

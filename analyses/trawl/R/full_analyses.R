@@ -1,7 +1,8 @@
 # full analysis
 source(here::here('datascript.R'))
 source(here::here("analyses/trawl/R/Lorenz.R"))
-library(hillR)
+source(here::here("analyses/trawl/R/Evenness.R"))
+
 nperm = 99
 
 add_row_2008 = data.frame(Date = as.Date("2008-01-01"))
@@ -19,7 +20,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
   ungroup() %>%
   dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
-                biweekly = ceiling(julian_date/30),
+                biweekly = ceiling(julian_date/14),
                 month = month(Date),
                 year = year(Date)) %>%
   dplyr::select(julian_date, Date,year, month, biweekly, everything())
@@ -122,6 +123,11 @@ TB_trawl_data %>%
   ungroup %>%
   # dplyr::mutate(time.var = 1:n()) %>%
   pivot_longer(c(-year), names_to = 'Common_name', values_to = 'Abundance')-> TB_trawl_yr
+
+TB_trawl_taxasite_yr = TB_trawl_yr %>%
+  group_by(year) %>%
+  pivot_wider(names_from = Common_name, values_from = Abundance) %>%
+  dplyr::select(-Minnow, -`Sygnathus Scovelli`)
   
 trawl_yr_turnover_list = purrr::map(c('appearance','disappearance','total'),
                                      ~codyn::turnover(df = TB_trawl_yr,
@@ -161,10 +167,65 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(julian_date, Date,year, month, biweekly, everything())
 
 ## Estimated qD = 2 for all communities
-biweekly_sampling = TB_trawl_taxasite %>%
+TB_trawl_biweekly = TB_trawl_data %>%
+  # exclude 2020 & 2021
+  dplyr::filter(year %ni% c("2020","2021")) %>%
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+                biweekly = ceiling(julian_date/14)) %>%
+  group_by(biweekly, Common_name) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
   group_by(biweekly) %>%
-  dplyr::summarise(n = n()) %>%
-  right_join(TB_trawl_taxasite %>% dplyr::select(Date, ))
+  pivot_wider( names_from = 'Common_name', values_from = 'Abundance', values_fill = 0) %>%
+  ungroup 
+
+###### Biweekly 2D patterns
+TB_trawl_biweekly_2D = TB_trawl_biweekly %>%
+  boot_sample_groups(TB_trawl_taxasite %>% dplyr::select(-julian_date,-Date,-month,-biweekly),
+                     group_var = 'biweekly',
+                     qD = 2,
+                     n_perm = nperm)
+
+TB_trawl_biweekly_2D %>%
+  group_by(biweekly) %>%
+  dplyr::summarise(across(q2, list(mean = ~mean(.x, na.rm = TRUE),
+                                   median = ~quantile(.x, 0.5, na.rm = TRUE),
+                                   quant2.5= ~quantile(.x, 0.025, na.rm = TRUE),
+                                   quant25= ~quantile(.x, 0.25, na.rm = TRUE),
+                                   quant75= ~quantile(.x, 0.75, na.rm = TRUE),
+                                   quant97.5= ~quantile(.x, 0.975, na.rm = TRUE)), .names = "{.fn}"))-> TB_trawl_biweekly_2D_summ
+
+  
+TB_trawl_biweekly_1D = TB_trawl_biweekly %>%
+  boot_sample_groups(. %>% dplyr::select(-biweekly),
+                     group_var = 'biweekly',
+                     qD = 1,
+                     n_perm = nperm)
+
+TB_trawl_biweekly_1D %>%
+  group_by(biweekly) %>%
+  dplyr::summarise(across(q1, list(mean = ~mean(.x, na.rm = TRUE),
+                                   median = ~quantile(.x, 0.5, na.rm = TRUE),
+                                   quant2.5= ~quantile(.x, 0.025, na.rm = TRUE),
+                                   quant25= ~quantile(.x, 0.25, na.rm = TRUE),
+                                   quant75= ~quantile(.x, 0.75, na.rm = TRUE),
+                                   quant97.5= ~quantile(.x, 0.975, na.rm = TRUE)), .names = "{.fn}")) -> TB_trawl_biweekly_1D_summ
+  ggplot(TB_trawl_biweekly_1D_summ) +
+  geom_line(aes(x = biweekly, y = median), color = 'blue') +
+  geom_line(data = TB_trawl_biweekly_2D_summ, aes(x = biweekly, y = median), color = 'red')
+
+w.q2 = WaveletComp::analyze.wavelet(TB_trawl_biweekly_1D_summ,
+                                    my.series = 2)
+c.q2 = WaveletComp::analyze.coherency(TB_trawl_biweekly_1D_summ)
+w.q2.image = WaveletComp::wt.image(w.q2)
+######
+
+TB_trawl_biweekly_qD = TB_trawl_biweekly %>%
+  split(., seq(1:nrow(.))) %>%
+  purrr::map2(., c(0,1,2), ~hillR::hill_taxa(.x %>% dplyr::select(-year), q = .y)) %>% 
+  setNames(., nm = c("q0","q1","q2")) %>%
+  bind_cols() %>%
+  dplyr::mutate(biweekly = TB_trawl_biweekly$biweekly)
+
 
 TB_trawl_yr_qD = TB_trawl_taxasite_yr %>%
   split(nrow(.)) %>%
@@ -257,6 +318,178 @@ ggplot()+
   #       legend.justification = c(0,1),
   # )
 
+TB_trawl_biweekly_qD = TB_trawl_biweekly %>%
+  split(., seq(1:nrow(.))) %>%
+  purrr::map2(., c(0,1,2), ~hillR::hill_taxa(.x %>% dplyr::select(-year), q = .y)) %>% 
+  setNames(., nm = c("q0","q1","q2")) %>%
+  bind_cols() %>%
+  dplyr::mutate(biweekly = TB_trawl_biweekly$biweekly)
+
+
+### Calculate the diversity profile of the annual community -----------
+
+TB_trawl_yr_evenness = TB_trawl_taxasite_yr %>%
+  split(., seq(1:nrow(.))) %>%
+  purrr::map(~new_fun(.x, seq(0,4,0.1), "E3")) %>%
+  setNames(., nm = TB_trawl_taxasite_yr$year) %>%
+  purrr::map(function(a) a %>% t %>% data.frame %>%
+               setNames(., nm = seq(0,4,0.1))) %>%
+          bind_rows(.id = 'year') %>%
+  pivot_longer(-year, names_to = 'q', values_to = 'eff_spp') %>%
+  dplyr::mutate(Date = as.Date(paste0(year,"-01-01"), format = "%Y-%m-%d")) %>%
+  dplyr::mutate(across(q, as.numeric))
+
+TB_trawl_q1_plot =
+  TB_trawl_yr_evenness %>%
+  dplyr::filter(q == 1) %>%
+  ggplot()+
+  geom_line(aes(x = Date, y = eff_spp))+
+  scale_y_continuous(name = 'Eff. Species (%)', limits = c(0,0.25))+
+  scale_x_date(breaks = as.Date(c("2007-01-01","2013-01-01","2019-01-01"),format = "%Y-%m-%d"),
+               date_labels = "%Y")+
+  theme(axis.title.x = element_blank())+
+  annotate('text', x = as.Date(Inf), y = as.Date(Inf), label = expression(italic(""^1*D)), size =6,
+           hjust = 1, vjust = 1)
+
+TB_trawl_q2_plot =
+  TB_trawl_yr_evenness %>%
+  dplyr::filter(q == 2) %>%
+  ggplot()+
+  geom_line(aes(x = Date, y = eff_spp))+
+  scale_y_continuous(name = 'Eff. Species (%)', limits = c(0,0.18))+
+  scale_x_date(breaks = as.Date(c("2007-01-01","2013-01-01","2019-01-01"),format = "%Y-%m-%d"),
+               date_labels = "%Y")+
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank())+
+  annotate('text', x = as.Date(Inf), y = as.Date(Inf), label = expression(italic(""^2*D)), size =6,
+           hjust = 1, vjust = 1)
+
+TB_trawl_yr_evenness %>%
+  ggplot() +
+  geom_path(aes(x = q, y = eff_spp, group = year, color = year), size = 1.1)+
+  scale_y_continuous(name = 'Effective species (%)', limits = c(0,1), expand = c(0.01,0.01))+
+  scale_x_continuous(name = expression(italic(""^q*D)), limits = c(0,3)) +
+  scale_color_manual(values = viridis(n = 12, option = 'viridis')) +
+  annotation_custom(
+    ggplotGrob(TB_trawl_q1_plot),
+    xmin = 0.75, xmax = 1.9, ymin = 0.5, ymax = 1
+  )+
+  annotation_custom(
+    ggplotGrob(TB_trawl_q2_plot),
+    xmin = 2, xmax = 3, ymin = 0.5, ymax = 1
+  )+
+  theme(legend.title = element_blank(),
+        legend.position = 'top')+
+  guides(color=guide_legend(nrow=1,byrow=TRUE))
+  
+
+
+
+  
+vp1 <- viewport(width = 0.4, height = 0.4, x = 0.33, y = 0.8)
+
+
+vp2 <- viewport(width = 0.4, height = 0.4, x = 0.66, y = 0.8)
+
+### calculate the diversity and similarity of orders of diversity ----------
+
+# debugonce(hillR::hill_taxa_parti)
+TB_trawl_taxasite_yr_q1 =  hillR::hill_taxa_parti_pairwise(comm = TB_trawl_taxasite_yr[,-1],
+                         q = 1, base = exp(1), rel_then_pool = TRUE, pairs = 'unique') %>%
+  dplyr::filter(site1 == 1) %>%
+  bind_cols(Date = as.Date(paste0(TB_trawl_taxasite_yr$year[-1],"-01-01"), format = "%Y-%m-%d"),.)
+  
+
+TB_trawl_taxasite_yr_q2 =  hillR::hill_taxa_parti_pairwise(comm = TB_trawl_taxasite_yr[,-1],
+                         q = 2, base = exp(1), rel_then_pool = TRUE, pairs = 'unique') %>%
+  dplyr::filter(site1 == 1) %>%
+  bind_cols(Date = as.Date(paste0(TB_trawl_taxasite_yr$year[-1],"-01-01"), format = "%Y-%m-%d"),.)
+  
+TB_trawl_taxasite_yr_q0 =  hillR::hill_taxa_parti_pairwise(comm = TB_trawl_taxasite_yr[,-1],
+                                                             q = 0, base = exp(1), rel_then_pool = TRUE, pairs = 'unique') %>%
+  dplyr::filter(site1 == 1) %>%
+    bind_cols(Date = as.Date(paste0(TB_trawl_taxasite_yr$year[-1],"-01-01"), format = "%Y-%m-%d"),.)
+
+TB_trawl_taxasite_yr_q0.5 =  hillR::hill_taxa_parti_pairwise(comm = TB_trawl_taxasite_yr[,-1],
+                                                           q = 0.5, base = exp(1), rel_then_pool = TRUE, pairs = 'unique') %>%
+  dplyr::filter(site1 == 1) %>%
+  bind_cols(Date = as.Date(paste0(TB_trawl_taxasite_yr$year[-1],"-01-01"), format = "%Y-%m-%d"),.)
+
+TB_trawl_taxasite_yr_qD = bind_rows(TB_trawl_taxasite_yr_q0, TB_trawl_taxasite_yr_q0.5) %>%
+  bind_rows(TB_trawl_taxasite_yr_q1) %>%
+  bind_rows(TB_trawl_taxasite_yr_q2) 
+
+TB_trawl_taxasite_yr_qD %>% 
+  dplyr::mutate(q = factor(q)) %>%
+  ggplot() + 
+  geom_point(aes(x = Date, y = local_similarity, group = q, color = q)) + 
+  geom_smooth(aes(x = Date, y = local_similarity, group = q, color =q),span = 0.9, se = FALSE)
+
+
+## tutorial
+View(FD::dummy)
+
+
+### create ordering based on relative abundances -------------
+TB_trawl_order =  TB_trawl_data %>%
+  dplyr::select(Date, Common_name, Abundance) %>%
+  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  group_by(Date) %>%
+  dplyr::mutate(rel_abun = Abundance/sum(Abundance, na.rm = TRUE)) %>%
+  dplyr::select(-Abundance) %>%
+  group_by(Common_name) %>%
+  dplyr::summarise(rel_abun = mean(rel_abun, na.rm = TRUE)) %>%
+  arrange(desc(rel_abun)) %>%
+  na.omit %>%
+  dplyr::select(Common_name) %>%
+  unlist %>% unname
+
+TB_trawl_order_names = fuzzySim::spCodes(TB_trawl_order, nchar.gen = 4, nchar.sp = 6)
+
+TB_trawl_taxasite_yr_dis = TB_trawl_taxasite_yr %>%
+  pivot_longer(-year,names_to = 'Common_name', values_to = 'Abundance') %>%
+  pivot_wider(names_from = 'year', values_from = 'Abundance') %>%
+  column_to_rownames('Common_name')
+
+TB_trawl_q2_dis = dis1(TB_trawl_taxasite_yr_dis, q = 2, type = 'tax') %>%
+  .[,TB_trawl_order] %>%
+  data.frame %>%
+  rownames_to_column('dis_type') %>%
+  dplyr::filter(dis_type == "UqN") %>%
+  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
+  dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)))
+
+
+TB_trawl_q1_dis = dis1(TB_trawl_taxasite_yr_dis, q = 1, type = 'tax') %>%
+  .[,TB_trawl_order] %>%
+  data.frame %>%
+  rownames_to_column('dis_type') %>%
+  dplyr::filter(dis_type == "UqN") %>%
+  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
+  dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)))
+
+TB_trawl_q0_dis = dis1(TB_trawl_taxasite_yr_dis, q = 0, type = 'tax') %>%
+  .[,TB_trawl_order] %>%
+  data.frame %>%
+  rownames_to_column('dis_type') %>%
+  dplyr::filter(dis_type == "UqN") %>%
+  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
+  dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)))
+
+q0_dis_plot = TB_trawl_q0_dis %>%
+  ggplot()+
+  geom_col(aes(x= Common_name, y = value));q0_dis_plot
+
+q1_dis_plot = TB_trawl_q1_dis %>%
+  ggplot()+
+  geom_col(aes(x= Common_name, y = value));q1_dis_plot
+
+q2_dis_plot = TB_trawl_q2_dis %>%
+  ggplot()+
+  geom_col(aes(x= Common_name, y = value));q2_dis_plot
+
+### evenness -----------
+
 
 
 TB_trawl_evenness = TB_trawl_taxasite %>%
@@ -302,3 +535,7 @@ annual_evenness_df %>%
   #                                            unlist %>%
   #                                            gini_even(.)
   #                                            ))
+
+
+
+

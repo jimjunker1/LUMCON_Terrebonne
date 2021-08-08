@@ -15,10 +15,15 @@ r_LDATS <- LDA_TS(rodents, topics = 2:5, nseeds = 2, formulas = ~1, nchangepoint
 TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(Date, Common_name, Abundance) %>%
   group_by(Date, Common_name) %>%
-  summarise(Abundance = sum(Abundance)) %>%
+  summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  # dplyr::filter(sum(Abundance) > 10) %>%
   na.omit %>%
   pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
+  dplyr::select(-Minnow, -`Sygnathus Scovelli`) %>%
   ungroup() 
+
+rowSums(TB_trawl_taxasite[,-1], na.rm = TRUE)
 
 seasonal_time <- data.frame(day = 1:365, sin_year = sin(1:365), cos_year = cos(1:365))
 
@@ -38,7 +43,7 @@ TB_LDATS <- list(TB_trawl_taxa, TB_trawl_covariates) %>%
   LDATS::conform_LDA_TS_data(quiet = FALSE)
 
 # debugonce(check_LDA_TS_inputs)
-check_LDA_TS_inputs(TB_LDATS, topics = 2:5, nseeds = 2, formulas = ~time, nchangepoints = 0:1, timename = "time", 
+check_LDA_TS_inputs(TB_LDATS, topics = 1:5, nseeds = 4, formulas = ~time, nchangepoints = 0:1, timename = "time", 
                     weights = TRUE, control = list(quiet = FALSE))
 #should return NULL if everything is okay
 
@@ -47,8 +52,8 @@ lda_model_set <- LDA_set(document_term_table = TB_LDATS$document_term_table,
                          nseeds = 5,
                          control = list(quiet = TRUE))
 
-# saveRDS(lda_model_set, file = "./data/lda_model_set.RDS")
-lda_model_set <- readRDS(file = "./data/lda_model_set.rds")
+saveRDS(lda_model_set, file = "./data/lda_model_set.RDS")
+# lda_model_set <- readRDS(file = "./data/lda_model_set.rds")
 selected_lda_set <- select_LDA(lda_model_set)
 plot(selected_lda_set[[1]])
 
@@ -105,7 +110,7 @@ trawl_LDATS_noseason <- LDA_TS(data = TB_LDATS,
 
 # saveRDS(trawl_LDATS_noseason, file = "./data/TB_trawl_LDATS_noseason.rds")
 trawl_LDATS_noseason <- readRDS(file = "./data/TB_trawl_LDATS_noseason.rds")
-plot(trawl_LDATs_noseason)
+plot(trawl_LDATS_noseason)
 
 trawl_LDATS_noseason_nochange <- LDA_TS(data = TB_LDATS,
                                topics = 5:7,
