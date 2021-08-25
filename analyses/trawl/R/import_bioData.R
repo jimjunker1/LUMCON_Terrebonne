@@ -20,12 +20,12 @@
    TB_trawl_worksheet <- gs4_get("1mUG6oYBGGONBzgXPsvS6XZkNRUIojxtI7BV8WUTh-3I")#sheetID extracted with as_sheets_ID(*sheet URL*)
    # get the tab indices for years, excluding any metadata tabs
    TB_trawl_tabs <- googlesheets4::sheet_names(TB_trawl_worksheet)
-   TB_trawl_tabs <- TB_trawl_tabs[!grepl("metadata",TB_trawl_worksheet[['sheets']]$name, ignore.case = TRUE)]
+   TB_trawl_tabs <- TB_trawl_tabs[!grepl("metadata|Notes",TB_trawl_worksheet[['sheets']]$name, ignore.case = TRUE)]
    
    # read in from all spreadsets
   
  TB_trawl_data <- lapply(TB_trawl_tabs, function(x){
-      googlesheets4::read_sheet(TB_trawl_worksheet, sheet = x, col_types = "Dcd-")
+      googlesheets4::read_sheet(TB_trawl_worksheet, sheet = x, range = "A:C", col_types = "Dcd")
    }) %>% bind_rows %>%
       dplyr::select(Date, Species, Abundance)
 #

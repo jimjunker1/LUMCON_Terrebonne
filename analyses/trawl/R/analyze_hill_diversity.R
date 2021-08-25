@@ -10,7 +10,7 @@ library(hillR)
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(Date, Common_name, Abundance) %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% c("2007","2020","2021")) %>%
   group_by(Date, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%
   na.omit %>% group_by(Date) %>%
@@ -19,7 +19,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   group_by(Date, Common_name) %>%
   pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
   ungroup() %>%
-  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2009-01-01")),
                 biweekly = ceiling(julian_date/30),
                 month = month(Date),
                 year = year(Date)) %>%

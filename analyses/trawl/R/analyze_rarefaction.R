@@ -3,7 +3,7 @@ source(here::here('datascript.R'))
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(Date, Common_name, Abundance) %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% c("2007","2020","2021")) %>%
   group_by(Date, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%
   na.omit %>% group_by(Date) %>%
@@ -12,7 +12,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   group_by(Date, Common_name) %>%
   pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
   ungroup() %>%
-  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2009-01-01")),
                 biweekly = ceiling(julian_date/30),
                 month = month(Date),
                 year = year(Date)) %>%
@@ -20,7 +20,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
 
 
 TB_trawl_sampling = TB_trawl_data %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% c("2007","2020","2021")) %>%
   dplyr::select(Date, year, Common_name, Abundance) %>%
   group_by(year) %>%
   dplyr::summarise(trawl_days = length(unique(Date)),
@@ -51,9 +51,9 @@ full_stats = mobr::calc_biodiv(TB_trawl_taxasite %>% dplyr::select(-julian_date:
 
 ## Estimated mobr for biweekly  for all communities
 TB_trawl_biweekly = TB_trawl_data %>%
-  # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
-  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+  # exclude 2007, 2020, & 2021
+  dplyr::filter(year(Date) %ni% c("2007","2020","2021")) %>%
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2009-01-01")),
                 biweekly = ceiling(julian_date/14)) %>%
   group_by(year,biweekly, Common_name) %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
