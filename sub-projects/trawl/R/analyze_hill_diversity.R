@@ -4,7 +4,7 @@
 ##'
 ##' @title
 
-here::i_am("analyses/trawl/R/analyze_hill_diversity.R")
+here::i_am("sub-projects/trawl/R/analyze_hill_diversity.R")
 library(hillR)
 
 ##create taxa by site matrix

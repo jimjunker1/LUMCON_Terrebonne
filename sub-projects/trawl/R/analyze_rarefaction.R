@@ -1,4 +1,5 @@
 source(here::here('datascript.R'))
+here::i_am("sub-porjects/trawl/R/analyze_rarefaction.R")
 
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%

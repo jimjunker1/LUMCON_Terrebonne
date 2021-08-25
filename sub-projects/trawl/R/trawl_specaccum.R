@@ -1,4 +1,6 @@
 source(here::here('datascript.R'))
+here::i_am('sub-projects/trawl/R/trawl_specaccum.R')
+
 # Full species accumulation curve (SAC)
 
 ##create taxa by site matrix

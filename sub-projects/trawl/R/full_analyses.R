@@ -1,16 +1,16 @@
 # full analysis
 source(here::here('datascript.R'))
-source(here::here("analyses/trawl/R/Lorenz.R"))
-source(here::here("analyses/trawl/R/Evenness.R"))
+source(here::here("sub-projects/trawl/R/Lorenz.R"))
+source(here::here("sub-projects/trawl/R/Evenness.R"))
 
 nperm = 99
 
-add_row_2008 = data.frame(Date = as.Date("2008-01-01"))
+year_removals = c("2007","2020","2021")
 
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(Date, Common_name, Abundance) %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% year_removals) %>%
   group_by(Date, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%
   na.omit %>% group_by(Date) %>%
@@ -19,7 +19,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   group_by(Date, Common_name) %>%
   pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
   ungroup() %>%
-  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2009-01-01")),
                 biweekly = ceiling(julian_date/14),
                 month = month(Date),
                 year = year(Date)) %>%
@@ -27,7 +27,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
 
 ## check sample-level statistics
 TB_trawl_sampling = TB_trawl_data %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% year_removals) %>%
   dplyr::select(Date, year, Common_name, Abundance) %>%
   group_by(year) %>%
   dplyr::summarise(trawl_days = length(unique(Date)),
@@ -49,7 +49,7 @@ total_richness = length(unique(TB_trawl_data$Common_name));
 # create time data frame to calculate accumulation of different species abundances over time
 TB_trawl_data %>%
   # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
+  dplyr::filter(year %ni% year_removals) %>%
   dplyr::filter(!duplicated(Common_name, nmax = total_richness )) %>%
   dplyr::mutate(Date = as.Date(Date)) %>%
   arrange(Date) %>%
@@ -58,7 +58,7 @@ TB_trawl_data %>%
 # 
 TB_annual_accum <- TB_trawl_data %>%
   # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
+  dplyr::filter(year %ni% year_removals) %>%
   mutate(pres = 1) %>% group_by(year) %>%
   filter(!duplicated(Common_name)) %>%
   summarise(richness = sum(pres)) %>%
@@ -115,7 +115,7 @@ beta_df <- bind_rows(beta_lists) %>% mutate(Date = as.Date(paste0(beta_dates,"-0
 ## quantify loss and appearance of species in the timeseries
 TB_trawl_data %>%
   # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
+  dplyr::filter(year %ni% year_removals) %>%
   group_by(year, Common_name) %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
   group_by(year) %>%
@@ -151,7 +151,7 @@ trawl_yr_turnover_list %>%
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
   dplyr::select(Date, Common_name, Abundance) %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% year_removals) %>%
   group_by(Date, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%
   na.omit %>% group_by(Date) %>%
@@ -160,7 +160,7 @@ TB_trawl_taxasite <- TB_trawl_data %>%
   group_by(Date, Common_name) %>%
   pivot_wider(names_from = Common_name, values_from = Abundance, values_fill = list(Abundance = 0)) %>%
   ungroup() %>%
-  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2009-01-01")),
                 biweekly = ceiling(julian_date/30),
                 month = month(Date),
                 year = year(Date)) %>%
@@ -169,8 +169,8 @@ TB_trawl_taxasite <- TB_trawl_data %>%
 ## Estimated qD = 2 for all communities
 TB_trawl_biweekly = TB_trawl_data %>%
   # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
-  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2007-01-05")),
+  dplyr::filter(year %ni% year_removals) %>%
+  dplyr::mutate(julian_date = julian(Date, origin = as.Date("2009-01-01")),
                 biweekly = ceiling(julian_date/14)) %>%
   group_by(biweekly, Common_name) %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE)) %>%
@@ -273,9 +273,7 @@ qD_df = q2_boots %>%
                                        quant97.5= ~quantile(.x, 0.975, na.rm = TRUE)), .names = "{.fn}")) %>%
       dplyr::mutate(Date = as.Date(paste(year,"01","01", sep = "-"), format = "%Y-%m-%d"),
                     q_order = "q1")
-  ) %>%
-  bind_rows(add_row_2008)
-
+  )
 
 qD_df %>% dplyr::filter(q_order == 'q2') %>%
   dplyr::summarise(across(median, ~mean(.x ,na.rm = TRUE))) %>% round(2)
@@ -345,7 +343,7 @@ TB_trawl_q1_plot =
   ggplot()+
   geom_line(aes(x = Date, y = eff_spp))+
   scale_y_continuous(name = 'Eff. Species (%)', limits = c(0,0.25))+
-  scale_x_date(breaks = as.Date(c("2007-01-01","2013-01-01","2019-01-01"),format = "%Y-%m-%d"),
+  scale_x_date(breaks = as.Date(c("2009-01-01","2013-01-01","2019-01-01"),format = "%Y-%m-%d"),
                date_labels = "%Y")+
   theme(axis.title.x = element_blank())+
   annotate('text', x = as.Date(Inf), y = as.Date(Inf), label = expression(italic(""^1*D)), size =6,
@@ -357,7 +355,7 @@ TB_trawl_q2_plot =
   ggplot()+
   geom_line(aes(x = Date, y = eff_spp))+
   scale_y_continuous(name = 'Eff. Species (%)', limits = c(0,0.18))+
-  scale_x_date(breaks = as.Date(c("2007-01-01","2013-01-01","2019-01-01"),format = "%Y-%m-%d"),
+  scale_x_date(breaks = as.Date(c("2009-01-01","2013-01-01","2019-01-01"),format = "%Y-%m-%d"),
                date_labels = "%Y")+
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank())+
@@ -385,7 +383,6 @@ TB_trawl_yr_evenness %>%
 
 
 
-  
 vp1 <- viewport(width = 0.4, height = 0.4, x = 0.33, y = 0.8)
 
 
@@ -433,7 +430,7 @@ View(FD::dummy)
 ### create ordering based on relative abundances -------------
 TB_trawl_order =  TB_trawl_data %>%
   dplyr::select(Date, Common_name, Abundance) %>%
-  dplyr::filter(year(Date) %ni% c("2020","2021")) %>%
+  dplyr::filter(year(Date) %ni% year_removals) %>%
   group_by(Date) %>%
   dplyr::mutate(rel_abun = Abundance/sum(Abundance, na.rm = TRUE)) %>%
   dplyr::select(-Abundance) %>%
@@ -489,8 +486,6 @@ q2_dis_plot = TB_trawl_q2_dis %>%
   geom_col(aes(x= Common_name, y = value));q2_dis_plot
 
 ### evenness -----------
-
-
 
 TB_trawl_evenness = TB_trawl_taxasite %>%
   split(., seq(1:nrow(.))) %>%
