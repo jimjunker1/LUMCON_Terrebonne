@@ -20,14 +20,15 @@ link-color: grey
 csl: ecology.csl
 ---
 ```{r Rmarkdown setup, include = FALSE, echo=F, warning=FALSE, message=FALSE}
+here::i_am("sub-projects/trawl/docs/ms/ms.RMD")
 
 source(here::here("datascript.R"))
-source(here::here("analyses/trawl/R/Lorenz.R"))
-source(here::here("analyses/trawl/R/Evenness.R"))
+source(here::here("sub-project/trawl/R/Lorenz.R"))
+source(here::here("sub-projects/trawl/R/Evenness.R"))
 
 
 TB_trawl_data = TB_trawl_data %>%
-   dplyr::filter(year %ni% c("2020","2021"))
+   dplyr::filter(year %ni% c("2007","2020","2021"))
 
 # set specific variables used in methods
 ## how many bootstrap permutations to run with replacement? Keep low until final draft
@@ -69,7 +70,7 @@ Trawl sampling was conducted as part of the Louisiana Universities Marine Consor
 
 ## Community characterization
 
-Species names were checked for typos and confirmed using the *gni_parse* function from the *taxize* package [@chamberlain2020] and further standardized to consistent taxonomic resolution for entire data series (Supplemental materials). We measured multiple aspects of species richness, first to track the uncorrected accumulation of species over time we filtered species from the data set after first occurrence. We then aggregated all trawls within a calendar year and calculated two measures of species richness, accounting for differences in sampling effort among years. The first measure was asymptotic species richness, *S~asymp~*, using the Chao1 estimator [@chao1984][@chao1987]. This metric is highly correlated with measured richness, *S* [@mcgill2011], but attempts to extrapolate the total species richness based on incomplete sampling. Second, we attempted to account for differences in effort among years by estimating the effort-controlled rarefied species richness, *S~n~*, which provides the expected number of species given a defined number of *n* individuals sampled [@gotelli2001]. *S~n~* estimates for yearly aggregated data, *n* was calculated by the minimum number of trawls within a year multiplied by `r n_year`. We calculated *S~asymp~* and *S~n~* using the mobr package [@mcglinn2019][@mcglinn2021a].
+Species names were checked for typos and confirmed using the *gni_parse* function from the *taxize* package [@chamberlain2020] and further standardized to consistent taxonomic resolution for entire data series (Supplemental materials). We measured multiple aspects of species richness, first to track the uncorrected accumulation of species over time we filtered species from the data set after first occurrence. We then calculated two measures of species richness, accounting for differences in abundance among trawls. The first measure was asymptotic species richness, *S~asymp~*, using the Chao1 estimator [@chao1984][@chao1987]. This metric is highly correlated with measured richness, *S* [@mcgill2011], but attempts to extrapolate the total species richness based on incomplete sampling of the community. Second, we estimated effort-controlled rarefied species richness, *S~n~*, which provides the expected number of species given a defined number of *n* individuals sampled [@gotelli2001]. For *S~n~* estimates for trawls, *n* was calculated by the minimum number of individuals within a trawl multiplied by `r n_year`. We calculated *S~asymp~* and *S~n~* using the mobr package [@mcglinn2019][@mcglinn2021a].
 
 Beyond actual and expected numbers of species, we calculated additional measures of biodiversity to capture community change through time. To quantify changes in the distribution of abundant and rare species, we calculated specific orders of diversity, the percentage of rare species, and evenness in species abundances on annually aggregated species abundances. An order of diversity, *^q^D*, where *q* represents a non-negative integer, captures the "effective numbers of species" based on varying degrees of rarity of the species in a community [@hill1973]. We used the the *hill_taxa* function in the hillR package [@li2018] to estimate the effective species for diversity order 2 (i.e., *^2^D*). *^2^D* is equivalent to the reciprocal of Simpson's diversity [@simpson1949] (i.e., 1/Simpson's index) which emphasizes the importance of dominant (highly abundant) species. At the other end of the abundance spectrum, we calculated the percentage of rare species in the community as the number of species with abundances below a threshold of $0.05*n$, divided by the total number of species x 100. Here, *n* is the number of individuals in the sample and the value of 0.05 was chosen because it has been shown to capture rarity well and is generally uncorrelated with other metrics of biodiversity. Lastly, to integrate changes in abundance of dominant and rare species within the community, we calculated the evenness of species abundances with the Gini coefficient [@gini1921], normalized for differences in species richness among years, $G^*$ [@solomon1975; @chao2019], :
 
@@ -85,8 +86,6 @@ where, in a community of *S* species, species' relative abundances, $p_{i}$, are
 total_richness = length(unique(TB_trawl_data$Common_name))
 
 TB_trawl_sampling = TB_trawl_data %>%
-  # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
    dplyr::select(Date, year, Common_name, Abundance) %>%
    group_by(year) %>%
    dplyr::summarise(trawl_days = length(unique(Date)),
@@ -94,8 +93,7 @@ TB_trawl_sampling = TB_trawl_data %>%
                     individuals = sum(Abundance, na.rm = TRUE))
 
 TB_trawl_taxasite <- TB_trawl_data %>%
-  # exclude 2020 & 2021
-  dplyr::filter(year %ni% c("2020","2021")) %>%
+
   dplyr::select(Date, Common_name, Abundance) %>%
   group_by(Date, Common_name) %>%
   summarise(Abundance = sum(Abundance)) %>%

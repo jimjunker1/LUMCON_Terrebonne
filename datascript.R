@@ -4,7 +4,7 @@ here::i_am("datascript.R")
 
 # import biology data if it has been greater than 1 month since download
 load(here::here("data/biology_sysDate.rda"))
-ifelse((Sys.Date()-biology_sysDate) >= 30, source(here::here("analyses/trawl/R/import_bioData.R")),source(here::here("analyses/trawl/R/load_bioData.R")))
+ifelse((Sys.Date()-biology_sysDate) >= 30, source(here::here("sub-projects/trawl/R/import_bioData.R")),source(here::here("sub-projects/trawl/R/load_bioData.R")))
 rm(biology_sysDate)
 
 # import environmental data

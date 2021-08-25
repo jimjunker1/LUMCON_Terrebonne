@@ -1,3 +1,4 @@
+here::i_am('sub-projects/trawl/R/load_enviroData.R')
 ## source in environmental data ##
 
 load_environmental_data <- function(){
