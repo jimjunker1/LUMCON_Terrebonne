@@ -44,7 +44,7 @@ data/ebd_US-LA_relFeb-2020/
 
 #Excel files
 *.xls*
-
+*.ppt*
 *.tmp
 
 # Word temporary
@@ -64,3 +64,7 @@ Backup of *.doc*
 
 # Visio autosave temporary files
 *.~vsd*
+
+
+# old workflow folder
+old-workflow/
