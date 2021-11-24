@@ -66,10 +66,11 @@ TB_trawl_taxasite <- TB_trawl_data %>%
 TB_trawl_taxasite_long = TB_trawl_taxasite %>%
   pivot_longer(-Date:-date_id, names_to = "Common_name", values_to = "Abundance")
 
-# # create bootstrapped data set to estimate variability
-# TB_trawl_boots = TB_trawl_data %>%
-#   group_by(year) %>%
-#   modelr::bootstrap(TB_trawl_data)
+TB_trawl_taxasite_long %>%
+  dplyr::filter(!duplicated(Common_name )) %>%
+  dplyr::mutate(Date = as.Date(Date)) %>%
+  arrange(Date) %>%
+  dplyr::mutate(richness = 1:n())-> TB_time_accum
 
 # set specific variables used in methods
 ## how many bootstrap permutations to run with replacement? Keep low until final draft
@@ -77,6 +78,10 @@ nperm = 99
 ## how many individuals for count for Sn, Sn = 18 * n_year
 n_mth = 2
 #
+iter = 7000
+warmup = 5000
+thin = 10
+adapt_delta = 0.99
 
 ```
 <!--- this is a note in Rmarkdown --->
@@ -93,7 +98,7 @@ Anthropogenic activities continue to exert long-term, varied, and increasing pre
 <!---  --->
 Anthropogenic activities continue to exert long-term, varied, and increasing pressures on ecosystems [@steffen2015] causing alterations to biological diversity on local and global scales. Shifts in biodiversity at local scales are variable and potentially more nuanced than at global scales, but generally local changes manifest primarily as changes to community composition and structure rather than declines in richness [@hillebrand2018]. These shifts in communities through time are difficult to predict, in part, due to the multidimensional nature of biodiversity [@chase2018]. Yet, understanding how communities change through time is crucial for predicting current and future changes to biological systems and ecosystem services.
 <!--- --->
-Explaining the extent and pace of biodiversity change will require identifying the conditions that lead to divergent biological responses to environmental change, both natural and anthropogenic. In particular, it will be important to disentangle the roles of intrinsic (e.g., ecological) and extrinsic (e.g., environmental) drivers of biodiversity change. Intrinsic and extrinsic processes can interact, leading to temporal patterns of biodiversity change that vary in response to environmental change. For example, gradual environmental change over time can lead to gradual community shifts or these shifts may be undetectable or abrupt [@williams2011][@scheffer2003]. 
+Explaining the extent and pace of biodiversity change will require identifying the conditions that lead to divergent biological responses to environmental change, both natural and anthropogenic. In particular, it will be important to disentangle the roles of intrinsic (e.g., ecological) and extrinsic (e.g., environmental) drivers of biodiversity change. Intrinsic and extrinsic processes can interact, leading to temporal patterns of biodiversity change that vary in response to environmental change. For example, gradual environmental change over time can lead to gradual community shifts or these shifts may be undetectable or abrupt [@williams2011; @scheffer2003]. 
 
 Disentangling the complexity of drivers and responses in community structure is especially pressing for marine systems. Marine systems have experienced greater changes than other habitats [@antao2020]. Yet, we currently lack linkages between ecological theory, primarily derived from terrestrial systems, and data in marine systems leaving unanswered questions about biodiversity changes in these habitats [@blowes2019]. We propose a framework to explore the nature of biodiversity change in an estuary bay community and connect this change to intrinsic and extrinsic drivers. This research will build towards a more coherent theory of biodiversity change through time [@shoemaker2020]. 
 
@@ -103,7 +108,7 @@ Here, we quantified biodiversity changes within a shallow estuarine community ov
 
 ## Sampling area
 
-This study was focused on Terrebonne Bay, located in the northern Gulf of Mexico of Louisiana, USA (29^$\circ$^11.200'N, 90^$\circ$^36.560'W; Figure S1). Terrebonne Bay is a broad (1,761 km2), shallow estuary (average depth 2m), separated from the Gulf of Mexico by two barrier island chains and connected by four tidal passes. The bay-estuary complex is part of an abandoned distributary of the Mississippi River and therefore no longer receives any significant riverine inputs. Thus, the majority of its freshwater inputs are from the local drainage basin [@bianchi2009]. While water column salinity and density are homogenous, strong salinity gradients exist seaward from the marsh to the barrier islands [@bianchi2009]. Tides in Terrebonne Bay are diurnal with a semidiurnal component, ranging 20-80 cm [@inoue2000].
+This study was focused on Terrebonne Bay, located in the northern Gulf of Mexico of Louisiana, USA (29^$\circ$^11.200'N, 90^$\circ$^36.560'W; Figure S1). Terrebonne Bay is a broad (1,761 km2), shallow estuary (average depth 2m), separated from the Gulf of Mexico by two barrier island chains and connected by four tidal passes. The bay-estuary complex is part of an abandoned distributary of the Mississippi River and therefore no longer receives any significant riverine inputs. Thus, the majority of its freshwater inputs are from the local drainage basin [@bianchi2009]. While water column salinity and density are homogeneous, strong salinity gradients exist seaward from the marsh to the barrier islands [@bianchi2009]. Tides in Terrebonne Bay are diurnal with a semidiurnal component, ranging 20-80 cm [@inoue2000].
 
 ## Trawl sampling
 
@@ -123,7 +128,9 @@ We calculated the contribution of each species to community dis/similarity acros
 
 ## Statistical Analyses
 
-To test for changes in species richness over time, we fit bayesian implementations of generalized additive models (GAMs) using the `mgcv` [@wood2011] and  `brms` package in R [@burkner2017; @burkner2018]. 
+To detect trends in species richness and other dimensions of biodiversity (e.g., turnover, evenness, etc.) we used generalized additive models (GAMs) with a bayesian implementations using the `mgcv` [@wood2011] and  `brms` packages in R [@burkner2017; @burkner2018]. Full models included smoothing spline terms for both trawl date and season as:
+$$y = \beta_0 + f_{season}(x_1) + f_{time}(x_2) + \varepsilon,\;\;\; \varepsilon ~ N(0, \sigma^{2} \Lambda) $$
+where, $y$ is the response variable (e.g., richness, turnover, evenness, etc.), $\beta_0$ is an intercept $f_{season}$ and $f_{time}$ represent seaonsal and trawl data smooth functions for month of year and day since beginning of the series, January 1, 2009. Seasonal terms were fit with cyclic cubic regression splines with smoothing dimension *k* = 12 to allow for continuity between December and January among model years. Models were 
 
 # Results
 
@@ -230,160 +237,237 @@ mth_group_stats = left_join(mth_chao1, mth_Sn) %>%
   pivot_longer(c(S_n,S_asymp, pct_rare),names_to = "index", values_to = "median" ) %>%
   ungroup
 
+## quantify loss and appearance of species in the timeseries
+trawl_mth_turnover = purrr::map(c('appearance','disappearance','total'),
+                                ~codyn::turnover(df = TB_trawl_taxasite_long %>% dplyr::select(-Date),
+                                                 time.var = 'date_id',
+                                                 species.var = 'Common_name',
+                                                 abundance.var = 'Abundance',
+                                                 metric = .x) %>%
+                                  data.frame %>%
+                                  dplyr::mutate(date_id = date_id,
+                                                variable = .x) %>%
+                                  dplyr::rename(value = !!names(.[1])) %>%
+                                  bind_rows(data.frame(value = NA_real_, variable =.x))) %>%
+  bind_rows %>%
+  left_join(TB_trawl_taxasite[,c(1,2)],.,by = 'date_id')
+
+gains = trawl_mth_turnover %>%
+  dplyr::filter(variable == "appearance")
+
+losses = trawl_mth_turnover %>%
+  dplyr::filter(variable == "disappearance")
+
+total = trawl_mth_turnover %>%
+  dplyr::filter(variable == "total")
+
 ```
 
 <!--- Outline the general patterns annually and  --->
 Over the sampling period from `r min(TB_trawl_sampling$year, na.rm = TRUE)` to `r max(TB_trawl_sampling$year, na.rm = TRUE)`, `r length(unique(TB_trawl_data$Date))` trawls-days were performed yielding `r format(signif(sum(TB_trawl_data$Abundance, na.rm = TRUE),3), scientific = TRUE)` individuals. Among years, total effort generally increased, both in number of trawl-days and individuals counted, from a minimum effort of `r min(TB_trawl_sampling$trawl_days)` (`r TB_trawl_sampling %>% slice_min(trawl_days) %>% dplyr::select(year) %>% unlist`) to `r max(TB_trawl_sampling$trawl_days)` (`r TB_trawl_sampling %>% slice_max(trawl_days) %>% dplyr::select(year) %>% unlist`) days and from `r min(TB_trawl_sampling$individuals, na.rm = TRUE)` (`r TB_trawl_sampling %>% slice_min(individuals) %>% dplyr::select(year) %>% unlist`) to `r format(signif(max(TB_trawl_sampling$individuals, na.rm = TRUE),3), scientific = TRUE)` (`r TB_trawl_sampling %>% slice_max(individuals) %>% dplyr::select(year) %>% unlist`) individuals. In total, `r length(unique(TB_trawl_data$Common_name))` unique species were identified and new species were consistently observed throughout the sampling period (Figure S1). Within a calendar year, asymptotic species richness (*S~asymp~*) was relatively stable from 2009 to 2012, reaching a minimum value of `r yr_group_stats %>% dplyr::filter(index == "S_asymp") %>% slice_min(median) %>% dplyr::select(median) %>% unlist %>% as.numeric %>% round(0)` in `r yr_group_stats %>% dplyr::filter(index == "S_asymp") %>% slice_min(median) %>% dplyr::select(year)`. Estimated *S~asymp~* increased in 2013 to a series maximum of `r yr_group_stats %>% dplyr::filter(index == "S_asymp") %>% slice_max(median) %>% dplyr::select(median) %>% unlist %>% as.numeric %>% round(0)` in `r yr_group_stats %>% data.frame %>% dplyr::filter(index == "S_asymp") %>% slice_max(median) %>% dplyr::select(year)`. However, given the large differences in effort among years, variability in *S~asymp~* may be partly attributable to sampling effects among years. Therefore, we also calculated rarefied richness at `r S_n_yr` individuals, *S~`r S_n_yr`~*,  for each year. Here, effort-controlled species richness, *S~`r S_n_yr`~*, diverged qualitatively from *S~asymp~* and was generally constant with an apparent slight increase in more recent sampling years. Overall, *S~`r S_n_yr`~* ranged from `r yr_group_stats %>% dplyr::filter(index == "S_n_yr") %>% slice_min(median) %>% dplyr::select(median) %>% round(1)` to `r yr_group_stats %>% dplyr::filter(index == "S_n_yr") %>% slice_max(median) %>% dplyr::select(median) %>% round(1)` among all years. Monthly, of rarefied richness averaged `r round(mean(mth_sn$S_n, na.rm = TRUE),1)` [range: `r round(min(mth_sn$S_n, na.rm = TRUE),1)`--`r round(max(mth_sn$S_n, na.rm = TRUE),1)`] and exhibited seasonal oscillations, but no detectable trend over time (Figure 1a, Table S1).
 
-```{r figure 1, echo = FALSE, warning = FALSE, message=FALSE, fig.cap="Figure 1. Multiple measures of species richness within the trawl community between the years 2007 to 2019 show continual accumulation of species (purple points and line) through the timeseries. The estimated asymptotic species richness over a calendar year (Sasymp; median values and 95% percentile interval represented by yellow points and area), suggests increasing numbers of species within the community over time. However, rarefied species richness controlled to 900 individuals (S900; median values and 95% percentil interval represented by green line and area) suggests the perceived increase in Sasymp may represent an effect of increased sampling effort"}
+```{r figure 1, echo = FALSE, warning = FALSE, message=FALSE, fig.height=8.5, fig.width=3.7, fig.cap="Figure 1. Multiple measures of species richness within the trawl community between the years 2007 to 2019 show continual accumulation of species (purple points and line) through the timeseries. The estimated asymptotic species richness over a calendar year (Sasymp; median values and 95% percentile interval represented by yellow points and area), suggests increasing numbers of species within the community over time. However, rarefied species richness controlled to 900 individuals (S900; median values and 95% percentil interval represented by green line and area) suggests the perceived increase in Sasymp may represent an effect of increased sampling effort"}
 
-TB_trawl_taxasite_long %>%
-  dplyr::filter(!duplicated(Common_name )) %>%
-  dplyr::mutate(Date = as.Date(Date)) %>%
-  arrange(Date) %>%
-  dplyr::mutate(richness = 1:n())-> TB_time_accum
+## Goals estimate the rarified richness through time
+## Show changes in evenness and Hill #s
 
 ### create timeseries figure
 mth_group_stats %>%
   dplyr::filter(index == 'S_n') %>%
   ggplot(aes( x= Date, y = median))+
-  scale_y_continuous(name = expression("Rarefied richness ("*italic(S[n])*")"), limits = c(0,12))+
-  scale_x_date(date_breaks = "1 year", date_labels = "%Y",limits = c(as.Date("2009-01-01"),as.Date("2019-12-31"))) +
-  geom_point(size = 1.5) +
-  geom_line(size = 1.2) 
-  theme()
-
-```
-
-```{r turnover, echo = FALSE, warning=FALSE, message=FALSE}
-
-## quantify loss and appearance of species in the timeseries
-trawl_mth_turnover = purrr::map(c('appearance','disappearance','total'),
-                                     ~codyn::turnover(df = TB_trawl_taxasite_long,
-                                                      time.var = 'date_id',
-                                                      species.var = 'Common_name',
-                                                      abundance.var = 'Abundance',
-                                                      metric = .x) %>%
-                                       data.frame %>%
-                                       dplyr::mutate(Date = as.Date(paste0(unique(TB_trawl_yr$year)[-1],"-01-01"), format = "%Y-%m-%d"),
-                                                     variable = .x) %>%
-                                       dplyr::rename(value = !!names(.[1])) %>%
-                                       bind_rows(data.frame(value = NA_real_, time.var = NA_real_, Date = as.Date("2008-01-01"), variable =.x))) %>%
-                                     bind_rows
-gains = trawl_yr_turnover %>%
-  dplyr::filter(variable == "appearance")
-
-losses = trawl_yr_turnover %>%
-  dplyr::filter(variable == "disappearance")
-
-total = trawl_yr_turnover %>%
-  dplyr::filter(variable == "total")
-
-```
-
-Consistent with the pattern of continued accumulation of new species throughout the sampling series and relatively stable effort-controlled richness, species gains (`r round(mean(gains$value, na.rm = TRUE),2)` $\pm$ `r round(sd(gains$value, na.rm = TRUE),2)` SD) and losses (`r round(mean(losses$value, na.rm = TRUE),2)` $\pm$ `r round(sd(losses$value, na.rm = TRUE),2)` SD) generally balanced over time (Figure 1b). Total turnover was variable but relatively stable (`r round(mean(total$value, na.rm = TRUE),2)` $\pm$ `r round(sd(total$value, na.rm = TRUE),2)` SD) and exhibited no detectable trend or coherent seasonal component.
-
-```{r turnover plot ,echo = FALSE, warning=FALSE, message=FALSE, fig.cap = "Figure 2. Total species turnover and partitioning of species gains and losses over time."}
+  scale_y_continuous(name = expression("Rarefied richness ("~italic(~S[n])~")"), limits = c(1,12),
+                     breaks = c(1,5,10),expand = c(0.01,0.01))+
+  scale_x_date(date_breaks = "year", limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
+               date_labels = "%Y",expand = c(0.01,0.01))+
+  geom_point()+
+  geom_line()+
+  theme_tufte()+
+  geom_rangeframe(sides = "l")+
+  annotate('text', label = "A", x = as.Date("2009-01-30"), y = 11, family ='serif')+
+  theme(axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        panel.grid.minor.x = element_line(color = 'lightgray'),
+        plot.margin = unit(c(0.0,0.1,-0.1,0.0), 'cm')) -> rich_time;
+rich_time
 trawl_mth_turnover %>%
+  dplyr::filter(variable == 'total') %>%
   na.omit %>%
-  ggplot()+
-  geom_line(aes(x = Date, y = value, group = variable, color = variable), size = 1.1)+
-  scale_color_manual(values = viridis(n = 3, option = 'viridis'))+
-  scale_y_continuous(name = 'Species turnover',limits = c(0,1), expand = c(0.01,0.01))+
+  ggplot(aes(x = Date, y = value, group = variable, color = variable))+
+  geom_point()+
+  geom_line(size = 1)+
+  scale_color_manual(values = viridis(n = 1, option = 'viridis', begin = .75))+
+  scale_y_continuous(name = 'Species turnover',limits = c(0,1), expand = c(0.01,0.01),
+                     breaks = c(0,0.2 ,0.4, 0.6, 0.8), labels = c(0,0.2,0.4,0.6,0.8))+
   scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
-               date_labels = "%Y")+
-  theme(legend.position = c(0,1),
+               date_labels = "%Y",expand = c(0.01,0.01))+
+  theme_tufte()+
+  geom_rangeframe(sides = "lb", color = 'black')+
+  annotate('text', label = "B", x = as.Date("2009-01-30"), y = 0.95, family = 'serif', vjust = 0)+
+  theme(legend.position = "none",
         legend.justification = c(0,1),
-        legend.background = element_rect(fill = 'transparent', color = NA),
-        legend.title = element_blank(),
-        axis.title.x = element_blank())
-```
+        axis.title.x = element_blank(),
+        plot.margin = unit(c(-0.18,0.15,0.0,0.0), 'cm'),
+        panel.grid.minor.x = element_line(color = 'lightgray'),
+        plot.background = element_rect(fill = 'transparent', color = NA)) -> turnover_time
 
-```{r annual qD, echo=FALSE, warning=FALSE, message=FALSE}
-set.seed(123)
-q2_boots = boot_sample_groups(TB_trawl_taxasite %>% dplyr::select(-julian_date,-Date,-month,-biweekly), 
-                   group_var = 'year',
-                   qD = 2,
-                   n_perm = nperm)
-set.seed(123)
-q1_boots = boot_sample_groups(TB_trawl_taxasite %>% dplyr::select(-julian_date,-Date,-month,-biweekly), 
-                              group_var = 'year',
-                              qD = 1,
-                              n_perm = nperm)
-
-qD_df = q2_boots %>% 
-  # summarise q2 by year
-  group_by(year) %>%
-  dplyr::summarise(across(q2, list(mean = ~mean(.x, na.rm = TRUE),
-                                   median = ~quantile(.x, 0.5, na.rm = TRUE),
-                                   quant2.5= ~quantile(.x, 0.025, na.rm = TRUE),
-                                   quant25= ~quantile(.x, 0.25, na.rm = TRUE),
-                                   quant75= ~quantile(.x, 0.75, na.rm = TRUE),
-                                   quant97.5= ~quantile(.x, 0.975, na.rm = TRUE)), .names = "{.fn}")) %>%
-  dplyr::mutate(Date = as.Date(paste(year,"01","01", sep = "-"), format = "%Y-%m-%d"),
-                q_order = "q2") %>%
-  bind_rows(
-    q1_boots %>%
-      # summarise q1 by year
-      group_by(year) %>%
-      dplyr::summarise(across(q1, list(mean = ~mean(.x, na.rm = TRUE),
-                                       median = ~quantile(.x, 0.5, na.rm = TRUE),
-                                       quant2.5= ~quantile(.x, 0.025, na.rm = TRUE),
-                                       quant25= ~quantile(.x, 0.25, na.rm = TRUE),
-                                       quant75= ~quantile(.x, 0.75, na.rm = TRUE),
-                                       quant97.5= ~quantile(.x, 0.975, na.rm = TRUE)), .names = "{.fn}")) %>%
-      dplyr::mutate(Date = as.Date(paste(year,"01","01", sep = "-"), format = "%Y-%m-%d"),
-                    q_order = "q1")
-   ) 
-# 
-# annual_evenness_boots = boot_gini_groups(TB_trawl_taxasite %>% dplyr::select(-julian_date,-Date,-month,-biweekly), 
-#                                 group_var = 'year',
-#                                 n_perm = nperm)
-# 
-# annual_evenness_df = annual_evenness_boots %>%
-#   dplyr::select(-boot_id) %>%
-#   pivot_longer(-year, names_to = 'measure', values_to = 'value') %>%
-#   group_by(year,measure) %>%
-#   dplyr::summarise(across(value, list(mean = ~mean(.x, na.rm = TRUE),
-#                                       median = ~quantile(.x, 0.5, na.rm = TRUE),
-#                                       quant2.5= ~quantile(.x, 0.025, na.rm = TRUE),
-#                                       quant25= ~quantile(.x, 0.25, na.rm = TRUE),
-#                                       quant75= ~quantile(.x, 0.75, na.rm = TRUE),
-#                                       quant97.5= ~quantile(.x, 0.975, na.rm = TRUE)), .names = "{.fn}")) %>%
-#   dplyr::mutate(Date = as.Date(paste(year,"01","01", sep = "-"), format = "%Y-%m-%d")) %>%
-#   ungroup
-
-annual_evenness_df = TB_trawl_taxasite_yr %>%
-  dplyr::select(-year) %>%
-  apply(., 1, gini_even) %>%
-      t() %>%
-      data.frame() %>%
-      bind_cols(TB_trawl_taxasite_yr$year, .) %>%
-      setNames(., c("year", "gini_raw", "gini_norm")) %>%
-  pivot_longer(-year, names_to = "measure", values_to = "median") %>%
-  dplyr::mutate(Date = as.Date(paste(year,"01","01", sep = "-"), format = "%Y-%m-%d")) %>%
-  ungroup
+g2 <- ggplotGrob(rich_time)
+g3 <- ggplotGrob(turnover_time)
+g2$widths <- unit.pmax(g2$widths, g3$widths)
+g3$widths <- unit.pmax(g2$widths, g3$widths)
+grid.arrange(g2,g3, layout_matrix = rbind(1,1,1,1,2,2))
   
-group_stats %>%
-  dplyr::filter(index == "pct_rare") -> rarity
+```
+
+```{r}
 
 ```
 
-Species turnover was likely confined to species with moderate to low relative abundances. The effective number of highly abundant species, *^2^D*, was variable but stable through time with calculated values *ca.* `r qD_df %>% dplyr::filter(q_order == 'q2') %>% dplyr::summarise(across(median, ~median(.x ,na.rm = TRUE))) %>% round(2)` $\pm$ `r qD_df %>% dplyr::filter(q_order == 'q2') %>% dplyr::summarise(across(median, ~sd(.x, na.rm = TRUE))) %>% round(1)` (mean $\pm$ 1 SD) (range: `r qD_df %>% dplyr::filter(q_order == 'q2')%>% slice_min(median) %>% dplyr::select(median) %>% round(2)` to  `r qD_df %>% dplyr::filter(q_order == 'q2') %>% slice_max(median) %>% dplyr::select(median) %>% round(1)`; Figure 3 __*supplemental?*__). In contrast, the percentage of rare species increased slightly through time from `r rarity %>% slice_min(year) %>% dplyr::select(median) %>% round(2)` to `r rarity %>% slice_max(year) %>% dplyr::select(median) %>% round(2)`. Additionally, the evenness in species abundances showed a clear decline through time from a median value of `r annual_evenness_df %>% dplyr::filter(measure == 'gini_norm') %>% slice_min(Date) %>% dplyr::select(median) %>% round(2)` in `r min(annual_evenness_df$year,na.rm = TRUE)` to `r annual_evenness_df %>% dplyr::filter(measure=='gini_norm') %>% slice_max(Date) %>% dplyr::select(median) %>% round(2)` in `r max(annual_evenness_df$year, na.rm = TRUE)`.
+Consistent with the pattern of continued accumulation of new species throughout the sampling series and relatively stable effort-controlled richness, species gains (`r round(mean(gains$value, na.rm = TRUE),2)` $\pm$ `r round(sd(gains$value, na.rm = TRUE),2)` SD) and losses (`r round(mean(losses$value, na.rm = TRUE),2)` $\pm$ `r round(sd(losses$value, na.rm = TRUE),2)` SD) generally balanced over time (Figure 1b). Total turnover was variable but relatively stable (`r round(mean(total$value, na.rm = TRUE),2)` $\pm$ `r round(sd(total$value, na.rm = TRUE),2)` SD) and exhibited no detectable trend or coherent seasonal component. Species turnover was likely confined to species with moderate relative abundances. While we observed declines in the effective number of species for highly rare (^0.1^D; population-level effects `r summary(q0.1_bayes_full_mod)[['fixed']]['sdate_id_1','Estimate']`, 95% CI: `r summary(q0.1_bayes_full_mod)[['fixed']]['sdate_id_1','l-95% CI']`--`r `summary(q0.1_bayes_full_mod)[['fixed']]['sdate_id_1','u-95% CI']`) and highly abundant species (^2^D; `r summary(q2_bayes_full_mod)[['fixed']]['sdate_id_1','Estimate']`, 95% CI: `r summary(q02_bayes_full_mod)[['fixed']]['sdate_id_1','l-95% CI']`--`r `summary(q2_bayes_full_mod)[['fixed']]['sdate_id_1','u-95% CI']`), declines were greater in the for diversity orders describing moderately abundant species (^0.5^D; `r summary(q0.5_bayes_full_mod)[['fixed']]['sdate_id_1','Estimate']`, 95% CI: `r summary(q0.5_bayes_full_mod)[['fixed']]['sdate_id_1','l-95% CI']`--`r `summary(q0.5_bayes_full_mod)[['fixed']]['sdate_id_1','u-95% CI']` and ^1^D; `r summary(q1_bayes_full_mod)[['fixed']]['sdate_id_1','Estimate']`, 95% CI: `r summary(q1_bayes_full_mod)[['fixed']]['sdate_id_1','l-95% CI']`--`r `summary(q1_bayes_full_mod)[['fixed']]['sdate_id_1','u-95% CI']`,  Figure 2).
 
-```{r diversity2 plot, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 3. Temporal trends in order of diversity q = 2, ^2^D highlight relative stability in the number of dominant species in the community through time. ^2^D is equivalent to 1/Simpson's diversity index and captures the effective number of highly abundant species in the community.", include=FALSE}
-qD_df %>%
-  dplyr::filter(q_order == "q2") %>%
-  ggplot()+
-  geom_ribbon(aes(x = Date, ymin = quant2.5, ymax = quant97.5, group = q_order, fill = q_order), alpha = 0.5)+
-  geom_line(aes(x = Date, y = median, group = q_order, color = q_order), size = 1.2)+
-  geom_point(aes(x = Date, y= mean, group = q_order), shape = 6)+
-  scale_y_continuous(name = expression("Effective species ("~italic(''^2*D)~")"),limits = c(0,11))+
-  scale_color_manual(labels = c("q2"), values = viridis(n = 1, option = 'viridis'))+
-  scale_fill_manual(labels = c("q2"),values = viridis(n = 1, alpha = 0.5, option = 'viridis'))+
+These changes in the distribution of relative abundances within the community led to an ultimate decrease in the community evenness through time. In contrast, the percentage of rare species increased slightly through time from `r rarity %>% slice_min(year) %>% dplyr::select(median) %>% round(2)` to `r rarity %>% slice_max(year) %>% dplyr::select(median) %>% round(2)`. Additionally, the evenness in species abundances showed a clear decline through time from a median value of `r annual_evenness_df %>% dplyr::filter(measure == 'gini_norm') %>% slice_min(Date) %>% dplyr::select(median) %>% round(2)` in `r min(annual_evenness_df$year,na.rm = TRUE)` to `r annual_evenness_df %>% dplyr::filter(measure=='gini_norm') %>% slice_max(Date) %>% dplyr::select(median) %>% round(2)` in `r max(annual_evenness_df$year, na.rm = TRUE)`.
+
+```{r diversity2 plot, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 2. Temporal trends in order of diversity q = 2, ^2^D highlight relative stability in the number of dominant species in the community through time. ^2^D is equivalent to 1/Simpson's diversity index and captures the effective number of highly abundant species in the community.", include=FALSE}#### patterns of Hill diversity through time}
+## hill 
+
+hill_time0 = hill_taxa(TB_trawl_taxasite %>% dplyr::select(-Date, -date_id), q = 0) %>%
+  data.frame %>%  dplyr::mutate(q = "q0") %>% setNames(., c('value','q')) %>%
+  bind_cols(TB_trawl_taxasite %>% dplyr::select(Date, date_id),.)
+hill_time0.1 = hill_taxa(TB_trawl_taxasite %>% dplyr::select(-Date, -date_id), q = 0.1) %>%
+  data.frame %>%  dplyr::mutate(q = "q0.1") %>% setNames(., c('value','q')) %>%
+  bind_cols(TB_trawl_taxasite %>% dplyr::select(Date, date_id),.)
+hill_time0.5 = hill_taxa(TB_trawl_taxasite %>% dplyr::select(-Date, -date_id), q = 0.5) %>%
+  data.frame %>%  dplyr::mutate(q = "q0.5") %>% setNames(., c('value','q')) %>%
+  bind_cols(TB_trawl_taxasite %>% dplyr::select(Date, date_id),.)
+hill_time1 = hill_taxa(TB_trawl_taxasite %>% dplyr::select(-Date, -date_id), q = 1)%>%
+  data.frame %>% dplyr::mutate(q = "q1") %>% setNames(., c('value','q')) %>%
+  bind_cols(TB_trawl_taxasite %>% dplyr::select(Date, date_id),.)
+hill_time2 = hill_taxa(TB_trawl_taxasite %>% dplyr::select(-Date, -date_id), q = 2)%>%
+  data.frame %>% dplyr::mutate(q = "q2") %>% setNames(., c('value','q')) %>%
+  bind_cols(TB_trawl_taxasite %>% dplyr::select(Date, date_id),.)
+
+hill_time = vctrs::vec_c(hill_time0,hill_time0.5,hill_time1,hill_time2) %>%
+  group_by(Date, date_id) %>%
+  pivot_wider(names_from = 'q', values_from = 'value') %>%
+  left_join(mth_group_stats %>%
+              dplyr::mutate(month = month(Date)) %>%
+              group_by(Date,month, date_id) %>%
+              pivot_wider(names_from = "index", values_from = "median")) %>%
+  dplyr::mutate(q0_eff = q0/q0,
+                q0.1_eff = (q0.1/q0)*100,
+                q0.5_eff = (q0.5/q0)*100,
+                q1_eff = (q1/q0)*100,
+                q2_eff = (q2/q0)*100,
+                q1_sn = q1/S_n,
+                q2_sn = q2/S_n)
+
+q0.1_bayes_full_mod = brm(bf(q0.1_eff ~ s(date_id) + s(month, bs = 'cc', k = 12)),
+                        data = hill_time, family = gaussian(),
+                        cores = 4, seed = 42,
+                        iter = 7000, warmup = 5000, thin = 10,
+                        control = list(adapt_delta = 0.99),
+                        save_pars = save_pars(all = TRUE),
+                        file = here::here("sub-projects/trawl/derived-data/q0.1_full.rds"),
+                        file_refit = 'on_change')
+
+ceff0.1 <- conditional_effects(q0.1_bayes_full_mod, 'date_id')
+
+ceff0.1_df = data.frame(
+  date = ceff0.1$date_id$date_id,
+  qD = "0.1",
+  estimate = ceff0.1$date_id$estimate__,
+  upper = ceff0.1$date_id$upper__,
+  lower = ceff0.1$date_id$lower__
+)
+q0.5_bayes_full_mod = brm(bf(q0.5_eff ~ s(date_id) + s(month, bs = 'cc', k = 12)),
+                        data = hill_time, family = gaussian(),
+                        cores = 4, seed = 42,
+                        iter = 7000, warmup = 5000, thin = 10,
+                        control = list(adapt_delta = 0.99),
+                        save_pars = save_pars(all = TRUE),
+                        file = here::here("sub-projects/trawl/derived-data/q0.5_full.rds"),
+                        file_refit = 'on_change')
+
+ceff0.5 <- conditional_effects(q0.5_bayes_full_mod, 'date_id')
+
+ceff0.5_df = data.frame(
+  date = ceff0.5$date_id$date_id,
+  qD = "0.5",
+  estimate = ceff0.5$date_id$estimate__,
+  upper = ceff0.5$date_id$upper__,
+  lower = ceff0.5$date_id$lower__
+)
+
+q1_bayes_full_mod = brm(bf(q1_eff ~ s(date_id) + s(month, bs = 'cc', k = 12)),
+                        data = hill_time, family = gaussian(),
+                        cores = 4, seed = 42,
+                        iter = 7000, warmup = 5000, thin = 10,
+                        control = list(adapt_delta = 0.99),
+                        save_pars = save_pars(all = TRUE),
+                        file = here::here("sub-projects/trawl/derived-data/q1_full.rds"),
+                        file_refit = 'on_change')
+
+ceff1 <- conditional_effects(q1_bayes_full_mod, 'date_id')
+
+ceff1_df = data.frame(
+  date = ceff1$date_id$date_id,
+  qD = "1",
+  estimate = ceff1$date_id$estimate__,
+  upper = ceff1$date_id$upper__,
+  lower = ceff1$date_id$lower__
+)
+
+q2_bayes_full_mod = brm(bf(q2_eff ~ s(date_id) + s(month, bs = 'cc', k = 12)),
+                        data = hill_time, family = gaussian(),
+                        cores = 4, seed = 42,
+                        iter = 7000, warmup = 5000, thin = 10,
+                        control = list(adapt_delta = 0.99),
+                        save_pars = save_pars(all = TRUE),
+                        file = here::here("sub-projects/trawl/derived-data/q2_full.rds"),
+                        file_refit = 'on_change')
+ceff2 <- conditional_effects(q2_bayes_full_mod, 'date_id')
+
+ceff2_df = data.frame(
+  date = ceff2$date_id$date_id,
+  qD = "2",
+  estimate = ceff2$date_id$estimate__,
+  upper = ceff2$date_id$upper__,
+  lower = ceff2$date_id$lower__
+)
+
+ceff_full = vctrs::vec_c(ceff01_df, ceff0.5_df, ceff1_df, ceff2_df) %>%
+  dplyr::mutate(Date = as.Date(date_id, origin = "2007-01-01")) 
+
+
+hill_time %>%
+  dplyr::select(Date, date_id, q0.1_eff:q2_eff) %>%
+  pivot_longer(-Date:-date_id, names_to = "qD", values_to = "value") %>%
+  bind_rows(ceff_full) %>%
+  ggplot(aes(x = Date, y = value, group = qD, color = qD))+
+  geom_ribbon(data = ceff_full, aes(x = Date, ymin = lower, ymax = upper, group = qD, fill = qD),
+              color = NA, alpha =0.3, inherit.aes = FALSE)+
+  geom_line(data= ceff_full, aes(x = Date, y = estimate, group = qD, color = qD), inherit.aes = FALSE)+
+  geom_point(size = 1.5,show.legend=FALSE)+
+  geom_path(size = 1.2,show.legend=FALSE)+
+  guides(fill = 'none')+
+  scale_color_manual(values = viridis(n = 4),labels = c(expression(italic(''^0.1*D)),
+                                                        expression(italic(''^0.5*D)),
+                                                      expression(italic(''^1*D)),
+                                                      expression(italic(''^2*D)))) +
+  scale_fill_manual(values = viridis(n = 4),labels = c(expression(italic(''^0.1*D)),
+                                                       expression(italic(''^0.5*D)),
+                                                      expression(italic(''^1*D)),
+                                                      expression(italic(''^2*D))))+
+  scale_y_continuous(name = expression("Effective species (%)"), limits = c(0,100),
+                     expand = c(0.01,0.01)) +
+  scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
+               date_labels = "%Y", expand = c(0.01,0.01))+
+  guides(color = guide_legend(nrow = 1))+
   theme(legend.title = element_blank(),
-        legend.position = "none",
-        legend.justification = c(0,1))
+        legend.background = element_rect(fill = 'transparent', color = NA),
+        legend.position = c(0,1),
+        legend.justification = c(0,1),
+        axis.title.x= element_blank())
 
 ```
 
