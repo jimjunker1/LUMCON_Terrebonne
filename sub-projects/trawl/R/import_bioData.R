@@ -38,18 +38,18 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
    TB_trawl_data <- TB_trawl_data %>%
     filter(!is.na(Species)) %>%
     mutate(Species = stringr::str_replace(Species,"spp(?!\\.)","spp."),
-           Species = gsub( "mix|- mix|- mixed| mixed","",Species, ignore.case = TRUE),
+           Species = gsub( "mix|- mix|- mixed| mixed|, unspecified|- ","",Species, ignore.case = TRUE),
            species_mod = case_when(grepl("Litopanaeus|Litopenaeus|Farfantepenaeus|Farfantepanaeus|Farfantapenaeus", Species, ignore.case = TRUE) ~ "Litopenaeus setiferus/Farfantepenaeus aztecus,White Shrimp/Brown Shrimp",
                                    grepl("Ariopsis felis|Ariopsisis|Ariosis|Bagre", Species) ~ "Ariopsis felis/Bagre marinus, Hardhead Catfish/Gafftopsail Catfish",
-                                   grepl("Family Naticidae", Species) ~ "Family: Naticidae/Urosalpinx cinerea, Moon Snail/Oyster drill snail",
+                                   grepl("Family Naticidae|Family Naticidae, Moon Snail; Urosalpinx cinerea, Atlantic Oyster Drill Snail|Urosalpinx cinerea, Atlantic Oyster Drill Snail", Species) ~ "Family: Naticidae, Moon Snail/Oyster drill snail",
                                    grepl("midshipmen", Species) ~ "Porichthys plectrodon, Atlantic Midshipman",
                                    grepl("shimp", Species) ~ "Litopenaeus setiferus/Farfantepenaeus aztecus,White Shrimp/Brown Shrimp",
                                    grepl("Puffer", Species, ignore.case = TRUE) ~ "Sphoeroides parvus, Least Pufferfish",
                                    grepl("hermit crab", Species) ~ "Superfamily: Paguroidea, Hermit Crab",
                                    grepl("jellyish", Species, ignore.case = TRUE) ~ "Class: Scyphozoa",
                                    grepl("mantis", Species, ignore.case = TRUE) ~ "Order: Stomatopoda, Mantis Shrimp",
-                                   grepl("Menticcirhus spp.", Species) ~ "Menticcirhus spp., Kingfish",
-                                   grepl("oyster drill", Species, ignore.case = TRUE) ~ "Uropsalpinx cinerea, Oyster drill snail",
+                                   grepl("Menticcirhus spp.", Species) ~ "Menticirrhus spp., Kingfish",
+                                   grepl("oyster drill", Species, ignore.case = TRUE) ~ "Family: Naticidae, Moon Snail/Oyster drill snail",
                                    grepl("Prionutus spp. Sea Robin", Species, ignore.case = TRUE) ~ "Prionutus spp., Sea Robin",
                                    grepl("silver kingfish", Species, ignore.case = TRUE) ~ "Megalops atlanticus, Atlantic Tarpon/Silver Kingfish",
                                    grepl("southern flounder", Species, ignore.case = TRUE) ~ "Paralichthys lethostigma, Southern Flounder",
@@ -58,12 +58,11 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                                    grepl("Isopod", Species) ~ "Order: Isopoda",
                                    grepl("Mojarra spp.", Species, ignore.case = TRUE) ~ "Family: Gerreidae, Mojarra spp.",
                                    grepl("Croaker*", Species, ignore.case = TRUE) ~ "Micropogonius undulatus, Atlantic Croaker",
-                                   grepl("butter*", Species, ignore.case = TRUE) ~"Peprilus spp., American Butterfish",
                                    grepl("brief squid", Species, ignore.case = TRUE) ~ "Lolliguncula brevis, Atlantic Brief Squid",
                                    grepl("Anchovy|Ancovy|anchovie", Species, ignore.case = TRUE) ~ "Anchoa spp., Anchovy",
                                    grepl("robin", Species, ignore.case = TRUE) ~ "Prionotus spp., Sea Robin",
                                    grepl("ophiuroid*", Species, ignore.case = TRUE) ~ "Class: Ophiuroidae, Brittle star",
-                                   grepl("F. Sciaenidae|F. Scianidae", Species, ignore.case = TRUE) ~ "F. Sciaenidae, Drum",
+                                   grepl("F. Sciaenidae|F. Scianidae", Species, ignore.case = TRUE) ~ "Family: Sciaenidae, Drum",
                                    grepl("Family: Monocanthidae|Monocanthidae", Species, ignore.case = TRUE) ~ "Family: Monacanthidae, Filefish",
                                    grepl("Clibanarius vittatus|Clibenarius vittatum", Species, ignore.case = TRUE) ~ "Clibanarius vittatus, Hermit Crab",
                                    grepl("Leiostomus xanthurus",Species, ignore.case = TRUE) ~ "Leiostomus xanthurus, Spot",
@@ -71,6 +70,19 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                                    grepl("Chaetodipterus faber", Species, ignore.case = TRUE) ~ "Chaetodipterus faber, Atlantic Spadefish",
                                    grepl("Clibanarius spp.", Species, ignore.case = TRUE) ~ "Clibanarius spp., Hermit Crab",
                                    grepl("Larimus fasciatus", Species, ignore.case = TRUE) ~ "Larimus fasciatus, Banded Drum",
+                                   grepl("C. Scyphozoa, Jellyfish, unspecified/ed", Species, ignore.case = TRUE) ~ "Class: Scyphozoa, Jellyfish",
+                                   grepl("Carcharhinus limbatus", Species, ignore.case = TRUE) ~ "Carcharhinus limbatus, Blacktip shark",
+                                   grepl("Chloroscombrus chrysurus$", Species, ignore.case = TRUE) ~ "Chloroscombrus chrysurus, Atlantic Bumper",
+                                   grepl("G. Cynoscion, Seatrout", Species, ignore.case = TRUE) ~ "Cynoscion spp., Seatrout",
+                                   grepl("Gobioides broussonnetii, Dragon Goby|Gobioides brousonnetii, Dragon Goby", Species, ignore.case = TRUE)  ~ "Gobioides broussonnetii, Dragon Goby",
+                                   grepl("Lutjanus argentimaculatus, Mangrove Snapper", Species, ignore.case = TRUE) ~ "Lutjanus griseu, Mangrove Snapper",
+                                   grepl("Menippe mercenaria", Species, ignore.case = TRUE) ~ "Menippe mercenaria, Florida Stone Crab",
+                                   grepl("Menticcirhus |Menticirrhus", Species, ignore.case = TRUE) ~ "Menticirrhus spp., Kingfish",
+                                   grepl("Mnemiopsis leidyi, Sea Walnut; Beroe ovata, Comb Jelly", Species, ignore.case = TRUE) ~ "Mnemiopsis leidyi, Sea Walnut",
+                                   grepl("Peprilus spp., American Butterfish|Peprilus triacanthus, American Butterfish|butter*", Species, ignore.case = TRUE) ~ "Peprilus burti, Gulf Butterfish",
+                                   grepl("unidentified Grouper", Species, ignore.case = TRUE) ~ "Family: Serranidae, Grouper",
+                                   grepl("unspecified Bivalve", Species, ignore.case = TRUE) ~ "Class: Bivalvia",
+                                   grepl("O. Siluriformes, catfish", Species, ignore.case = TRUE) ~ "Order: Siluriformes, catfishes",
                                    TRUE ~ NA_character_),
            species_mod = if_else(is.na(species_mod), Species, species_mod),
            species_mod = str_replace(species_mod, "F. ", "Family: "),
@@ -115,7 +127,8 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                    c("Sciaenops ocellata"),
                    c("Stellifer lanceolata"),
                    c("Sygnathus scovelli"),
-                   c("Urophysis floridanus")
+                   c("Urophysis floridanus"),
+                   c("Calinectes sapidus")
 
   )
    good_names = list("Ariopsis felis/Bagre marinus",
@@ -132,9 +145,9 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                     "Family: Sciaenidae",
                     "Litopenaeus setiferus/Farfantepenaeus aztecus",
                     "Menidia beryllina",
-                    "Menticcirhus americanus",
-                    "Menticcirhus saxatilis",
-                    "Menticcirhus spp.",
+                    "Menticirrhus spp.",
+                    "Menticirrhus spp.",
+                    "Menticirrhus spp.",
                     "Mojarra spp.",
                     "Opsanus beta",
                     "Peprilus burti",
@@ -142,14 +155,15 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                     "Sciaenops ocellatus",
                     "Stellifer lanceolatus",
                     "Syngnathus scovelli",
-                    "Urophycis floridanus"
+                    "Urophycis floridanus",
+                    "Callinectes sapidus"
   )
    keyval <- setNames(rep(good_names, lengths(bad_names)), unlist(bad_names))
    # unique(levels(as.factor(TB_trawl_data$species_mod)))
 
    # coordinate common names for species either: w/ no common name in data or common name errors
   species_names = list(c("Class: Ophiuroidea"),
-                       c("Class: Scyphozoa"),
+                       c("Class: Scyphozoa", "C. Scyphozoa","Jellyfish/Ed"),
                        c("Class: Polychaeta"),
                        c("Family: Brachyura", "Crab"),
                        c("Family: Blenniidae"),
@@ -172,13 +186,15 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                        c("Syngnathus scovelli"),
                        c("Larimus fasciatus"),
                        c("Anchoa mitchilli"),
-                       c("Baywhiff"),
+                       c("Baywhiff","Citharichthys spilopterus"),
                        c("atlantic bumper","Chloroscombrus chrysurus", "Chloroscombrus Chrysurus"),
                        c("burfish"),
                        c("crevalle jack"),
-                       c("Hogchoaker"),
+                       c("Hogchoaker", "Hogchocker"),
                        c("Sciaenops ocellatus", "Sciaenops Ocellatus"),
-                       c("Carcharhinus limbatus","Carcharhinus Limbatus")
+                       c("Carcharhinus limbatus","Carcharhinus Limbatus"),
+                       c("Brevoortia patronus","Gulf Menhaden (Pogy)"),
+                       c("O. Siluriformes","Order: Siluriformes","Catfish$")
   )
    common_names = list("Brittle star",#Class: Ophiuroidea
                       "Jellyfish",#Class: Scyphozoa
@@ -210,7 +226,9 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
                       "Crevalle Jack",
                       "Hogchoker",
                       "Red Drum",
-                      "Blacktip Shark"
+                      "Blacktip Shark",
+                      "Gulf Menhaden",
+                      "Catfish"
   )
    commonkey <- setNames(rep(common_names, lengths(species_names)), unlist(species_names))
    
@@ -219,9 +237,8 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
            species_mod = recode(species_mod, !!!keyval),
            Common_name = recode(Common_name, !!!commonkey),
            date_id = as.Date(paste0(as.character(year),"-",as.character(month),"-01")),
-           date_id = julian(date_id, origin = as.Date("2007-01-01")))
-   
-   
+           date_id = julian(date_id, origin = as.Date("2007-01-01"))) %>%
+      dplyr::filter(!is.na(Date))
    
 # unique(as.factor(TB_trawl_data$species_mod))
 #### End scientific and common name fixes #### 
@@ -230,8 +247,8 @@ here::i_am("sub-projects/trawl/R/import_bioData.R")
 trawl_spp_parse <- taxize::gn_parse(TB_trawl_data %>%
                                           dplyr::select(species_mod) %>%
                                           flatten %>%
-                                          gsub("Order: |Family: |Superfamily: |Class: |Phylum: ","",.) %>%
-                                          unique)
+                                          gsub("Order: |Family: |Superfamily: |Class: |Phylum: |G. |O. |C. ","",.) %>%
+                                          unique) 
 
 #### End Data entry fixes ####
 ### SAve objects ####
@@ -240,4 +257,5 @@ trawl_spp_parse <- taxize::gn_parse(TB_trawl_data %>%
  save(biology_sysDate, file = here::here("data/biology_sysDate.rda"))
  saveRDS(trawl_spp_parse, file = here::here("data/trawl_spp_parse.rds"))
 
-rm(list = ls()[ls() %ni% "TB_trawl_data"])
+rm(list = ls()[ls() %ni% c("TB_trawl_data", lsf.str())])
+               

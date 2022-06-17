@@ -20,8 +20,8 @@ pacman::p_load(
   taxize, hillR, codyn, gridExtra, fuzzySim
 )
 
-devtools::install_github(c("jimjunker1/junkR")) # , "ropensci/rfishbase"))
-# library(junkR)
+# devtools::install_github(c("jimjunker1/junkR")) # , "ropensci/rfishbase"))
+library(junkR)
 # devtools::install_github('MoBiodiv/mobr')
 library(mobr)
 

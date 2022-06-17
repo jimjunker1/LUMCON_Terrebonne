@@ -3,7 +3,7 @@ title: "Trawl-README"
 author: "JRJ"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 knit: (function(inputFile, encoding) { 
-      out_dir <- "docs";
+      out_dir <- here::here("sub-projects/trawl/docs");
       rmarkdown::render(inputFile,
                         encoding=encoding, 
                         output_file=file.path(here::here(), out_dir, 'trawl_README.html')) })

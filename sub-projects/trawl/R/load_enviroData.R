@@ -10,9 +10,9 @@ roundUP <<- function(x,to=10){
   to*(x%/%to + as.logical(x%%to))
 }
 
-tempF_to_C <<- function(F){(5/9)*(F-32)}
+tempF_to_C <- function(F){(5/9)*(F-32)}
 
-TB_temp_df <<- bind_rows(temp_files) %>%
+TB_temp_df <- bind_rows(temp_files) %>%
   dplyr::select(datetime = 'Date/Time', temp_C = 'Water Temp C') %>%
   dplyr::mutate(Date = as.Date(datetime)) %>%
   dplyr::select(-datetime) %>%
@@ -37,7 +37,7 @@ TB_temp_df <<- bind_rows(temp_files) %>%
 #          yday = yday(datetime))
 
 sal_paths = list.files(path = here::here("data/environment"), "Terrebonne.*salinity.*2020.*", full.names = TRUE)
-TB_salinity_df <<- lapply(sal_paths, read_csv,
+TB_salinity_df <- lapply(sal_paths, read_csv,
                           col_types = cols('Date/Time' = col_datetime(format = "%m/%d/%Y %H:%M"))) %>%
   bind_rows %>%
   dplyr::select(datetime = 'Date/Time', sal_psu = contains('salinity')) %>%
@@ -55,9 +55,9 @@ marine_center_files = lapply(marine_center_paths, read_csv, col_type = cols(`Dat
         group_by(Date) %>%
         summarise_all(mean, na.rm = TRUE))
 
-MC_salinity_df <<- marine_center_files[[1]] %>% dplyr::select(Date, sal_psu = "Sal")
-MC_temperature_df <<- marine_center_files[[2]] %>% dplyr::select(Date, temp_C = 'Water Temp C')
-MC_depth_df <<- marine_center_files[[3]] %>% dplyr::select(Date, depth_m = 'Water Depth M')
+MC_salinity_df <- marine_center_files[[1]] %>% dplyr::select(Date, sal_psu = "Sal")
+MC_temperature_df <- marine_center_files[[2]] %>% dplyr::select(Date, temp_C = 'Water Temp C')
+MC_depth_df <- marine_center_files[[3]] %>% dplyr::select(Date, depth_m = 'Water Depth M')
 ## combine the TB, MC, and regional datasets to fill in gaps
 
 regional_temp_paths = list.files(path = here::here("data/environment"), "^X.*.nc", full.names = TRUE)
@@ -67,7 +67,7 @@ regional_time_units = ncatt_get(regional_temp_list, 'time', 'units')
 temp_array = ncvar_get(regional_temp_list, 'sst')
 regional_time_date = as.Date(regional_time, origin =  unlist(strsplit(regional_time_units$value," "))[3], format = "%Y-%m-%d")
 temp_avg = apply(temp_array,3,mean, na.rm = TRUE)
-regional_temp_df <<- data.frame(Date = as.Date(regional_time_date), sst = temp_avg) %>% as_tibble
+regional_temp_df <- data.frame(Date = as.Date(regional_time_date), sst = temp_avg) %>% as_tibble
 
 full_dates = seq.Date(from = as.Date("2009-01-01"), to = as.Date("2019-12-31"), by = 1) %>% data.frame %>% setNames('Date')
 
@@ -75,14 +75,19 @@ full_dates = seq.Date(from = as.Date("2009-01-01"), to = as.Date("2019-12-31"), 
 temp_combined = left_join(MC_temperature_df %>% rename(MC_temp = 'temp_C'), TB_temp_df %>% rename(TB_temp = 'temp_C'), by = 'Date') %>%
   right_join(full_dates, by = 'Date', all = TRUE) %>% ungroup() %>%
   join(regional_temp_df)
-set.seed(42);ar.model = auto.arima(temp_combined$TB_temp, xreg = as.matrix(temp_combined[,c(2,4)]))
-set.seed(123);TB_forecast = forecast(ar.model, xreg = as.matrix(temp_combined[,c(2,4)]))
+set.seed(42);ar.model = auto.arima(temp_combined$TB_temp, xreg = as.matrix(temp_combined[,c(2,4)]), stepwise = FALSE, approximation = FALSE, num.cores = (parallel::detectCores()-1))
+set.seed(123);TB_forecast = forecast::forecast(ar.model, xreg = as.matrix(temp_combined[,c(2,4)]))
 
 temperature_series <<- temp_combined %>% 
-  bind_cols(TB_forecast$mean) %>% 
-  rename(forecast = '...5') %>%
-  dplyr::mutate(TB_tempC_series = ifelse(is.na(TB_temp), forecast,TB_temp),
-         TB_tempC_series = ifelse(is.na(TB_tempC_series), sst, TB_tempC_series))
+  bind_cols(forecast = TB_forecast$mean) %>%
+  bind_cols(upper = TB_forecast$upper[,'95%']) %>%
+  bind_cols(lower = TB_forecast$lower[,'95%']) %>%
+  # rename(forecast = '...5') %>%
+  dplyr::mutate(estimated = ifelse(is.na(TB_temp), 0,1),
+                TB_tempC_series = ifelse(is.na(TB_temp), forecast,TB_temp),
+                TB_tempC_series = ifelse(is.na(TB_tempC_series), sst, TB_tempC_series)) %>%
+  dplyr::mutate(across(c(upper,lower), ~ifelse(as.logical(estimated),0,.x)))
+
 ## salinity
 regional_salinity_paths = list.files(path = here::here("data/environment"),"^aggregate.*.nc", full.names = TRUE)
 regional_salinity_list = ncdf4::nc_open(regional_salinity_paths[[1]])
@@ -92,22 +97,31 @@ regional_salinity_time_date = as.Date(regional_salinity_time, origin = unlist(st
 regional_salinity_array = ncdf4::ncvar_get(regional_salinity_list, 'l3m_data')
 # regional_salinity_array[[2]] = ncdf4::ncvar_get(regional_salinity_list[[2]], 'sss_smap_40km')
 regional_salinity_array = apply(regional_salinity_array,2,mean, na.rm = TRUE)
-regional_sss_df <<- data.frame(Date = as.Date(regional_salinity_time_date), sss = regional_salinity_array)
-salinity_combined = left_join(MC_salinity_df %>% rename(MC_sal = 'sal_psu'), TB_salinity_df %>% rename(TB_sal = 'sal_psu')) %>%
-  right_join(full_dates,by = 'Date', all = TRUE) %>% join(regional_sss_df)
-set.seed(42);sal.ar.model1 = auto.arima(salinity_combined$TB_sal, xreg = as.matrix(salinity_combined[,2]))
-sal.ar.model1
-set.seed(42);sal.ar.model2 = auto.arima(salinity_combined$TB_sal, xreg = as.matrix(salinity_combined[,c(2,4)]))
-sal.ar.model2
-TB_sal_forecast1 = forecast(sal.ar.model1, xreg = as.matrix(salinity_combined[,2]))
-TB_sal_forecast2 = forecast(sal.ar.model2, xreg = as.matrix(salinity_combined[,c(2,4)]))
+regional_sss_df <- data.frame(Date = as.Date(regional_salinity_time_date), sss = regional_salinity_array)
+salinity_series <<- left_join(MC_salinity_df %>% rename(MC_sal = 'sal_psu'), TB_salinity_df %>% rename(TB_sal = 'sal_psu')) %>%
+  right_join(full_dates,by = 'Date', all = TRUE) %>%
+  left_join(MC_depth_df, by = 'Date', all = TRUE) %>%
+  join(regional_sss_df)
 
-salinity_series <<- salinity_combined %>%
-  bind_cols(forecast1 = TB_sal_forecast1$mean) %>%
-  bind_cols(forecast2 =TB_sal_forecast2$mean) %>%
-  dplyr::mutate(TB_sal_series = ifelse(is.na(TB_sal), forecast1, TB_sal),
-         TB_sal_series = ifelse(is.na(TB_sal_series), forecast2, TB_sal_series))
+# run arima models
+# set.seed(42);sal.ar.model1 = auto.arima(salinity_combined$TB_sal, xreg = as.matrix(salinity_combined[,c(2,4)]),stepwise = FALSE, approximation = FALSE, num.cores = (parallel::detectCores()-1))
+# set.seed(42);sal.ar.model2 = auto.arima(salinity_combined$TB_sal, xreg = as.matrix(salinity_combined[,c(4,5)]),stepwise = FALSE, approximation = FALSE, num.cores = (parallel::detectCores()-1))
+# TB_sal_forecast1 = forecast::forecast(sal.ar.model1, xreg = as.matrix(salinity_combined[,c(2,4)]))
+# TB_sal_forecast2 = forecast::forecast(sal.ar.model2, xreg = as.matrix(salinity_combined[,c(4,5)]))
 
+# salinity_series <<- salinity_combined %>% 
+#   # bind_cols(forecast1 = TB_sal_forecast1$mean) %>%
+#   # bind_cols(forecast2 =TB_sal_forecast2$mean) %>%
+#   # bind_cols(upper1 = TB_sal_forecast1$upper[,'95%']) %>%
+#   # bind_cols(lower1 = TB_sal_forecast1$lower[,'95%']) %>%
+#   # bind_cols(upper2 = TB_sal_forecast2$upper[,'95%']) %>%
+#   # bind_cols(lower2 = TB_sal_forecast2$lower[,'95%']) %>%
+#   dplyr::mutate(estimated = ifelse(is.na(TB_sal),0,1),
+#                 TB_sal_series = ifelse(is.na(TB_sal), forecast1, TB_sal),
+#          TB_sal_series = ifelse(is.na(TB_sal_series), forecast2, TB_sal_series))
+# return(list(temperature_series = temperature_series,
+#             salinity_series = salinity_series))
  }
- load_environmental_data()
- rm(load_environmental_data)
+load_environmental_data()
+ # rm(load_environmental_data)
+

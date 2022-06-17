@@ -5,7 +5,26 @@ source(here::here("sub-projects/trawl/R/Evenness.R"))
 
 nperm = 99
 
-year_removals = c("2007","2020","2021")
+year_removals = c("2007","2020","2021","2022")
+
+## Salinity data
+
+# salinity
+
+sal_paths = list.files(path = here::here("data/environment"), "Terrebonne.*salinity.*2020.*", full.names = TRUE)
+TB_salinity_df <<- lapply(sal_paths, read_csv,
+                          col_types = cols('Date/Time' = col_datetime(format = "%m/%d/%Y %H:%M"))) %>%
+  bind_rows %>%
+  dplyr::select(datetime = 'Date/Time', sal_psu = contains('salinity')) %>%
+  dplyr::mutate(Date = as.Date(datetime)) %>%
+  dplyr::select(-datetime) %>%
+  group_by(Date) %>%
+  summarise_all(mean, na.rm = TRUE) %>%
+  full_join(data.frame(Date = seq(min(TB_trawl_data$Date), max(TB_trawl_data$Date), by = 1),
+                       sal_psu_mod = NA)) 
+
+TB_salinity_df %>% ggplot()+
+  geom_line(aes(x = Date, y = sal_psu))
 
 ##create taxa by site matrix
 TB_trawl_taxasite <- TB_trawl_data %>%
@@ -25,7 +44,14 @@ TB_trawl_taxasite <- TB_trawl_data %>%
 TB_trawl_taxasite_long = TB_trawl_taxasite %>%
   pivot_longer(-Date:-date_id, names_to = "Common_name", values_to = "Abundance")
 
-
+TB_trawl_effort_mth = TB_trawl_data %>%
+  dplyr::filter(year(Date) %ni% year_removals) %>%
+  dplyr::select(Date, date_id) %>%
+  group_by(date_id) %>%
+  dplyr::summarise(trawl_n = n()) %>%
+  dplyr::mutate(Date = as.Date(date_id, origin = "2007-01-01")) %>%
+  dplyr::select(Date, trawl_n)
+  
 ## Goals estimate the rarified richness through time
 ## Show changes in evenness and Hill #s
 ## Look at compositon 
@@ -156,7 +182,6 @@ total = trawl_mth_turnover %>%
 mean(gains$value)
 mean(losses$value)
 
-
 mth_group_stats %>%
   dplyr::filter(index == 'S_n') %>%
   ggplot(aes( x= Date, y = median))+
@@ -173,7 +198,8 @@ mth_group_stats %>%
         axis.ticks.x = element_blank(),
         axis.text.x = element_blank(),
         panel.grid.minor.x = element_line(color = 'lightgray'),
-        plot.margin = unit(c(0.0,0.1,-0.1,0.0), 'cm')) -> rich_time;
+        plot.margin = unit(c(0.0,0.1,-0.1,0.0), 'cm'),
+        plot.background = element_rect(fill = 'transparent', color = NA)) -> rich_time;
 rich_time
 trawl_mth_turnover %>%
   dplyr::filter(variable == 'total') %>%
@@ -188,7 +214,7 @@ trawl_mth_turnover %>%
                date_labels = "%Y",expand = c(0.01,0.01))+
   theme_tufte()+
   geom_rangeframe(sides = "lb", color = 'black')+
-  annotate('text', label = "B", x = as.Date("2009-01-30"), y = 0.95, family = 'serif', vjust = 0)+
+  annotate('text', label = "B", x = as.Date("2009-01-30"), y = 0.93, family = 'serif', vjust = 0)+
   theme(legend.position = "none",
         legend.justification = c(0,1),
         axis.title.x = element_blank(),
@@ -231,7 +257,8 @@ sn_bayes_full_mod = brm(bf(S_n ~ s(month, bs = 'cc', k = 12)+ s(date_id)),
                      save_pars = save_pars(all = TRUE),
                      file = here::here("sub-projects/trawl/derived-data/sn_full.rds"),
                      file_refit = 'on_change')
-sn_bayes_full_mod <- add_criterion(sn_bayes_full_mod, c("loo", "waic","kfold"))
+sn_bayes_full_mod <- add_criterion(sn_bayes_full_mod, c("loo", "waic","kfold"),
+                                   file = here::here("sub-projects/trawl/derived-data/sn_full.rds"))
 
 summary(sn_bayes_full_mod)
 plot(sn_bayes_full_mod)
@@ -245,7 +272,8 @@ sn_bayes_s_mod = brm(bf(S_n ~ s(month, bs = 'cc', k = 12)),
                      save_pars = save_pars(all = TRUE),
                      file = here::here("sub-projects/trawl/derived-data/sn_s.rds"),
                      file_refit = 'on_change')
-sn_bayes_s_mod <- add_criterion(sn_bayes_s_mod, c("loo", "waic","kfold"))
+sn_bayes_s_mod <- add_criterion(sn_bayes_s_mod, c("loo", "waic","kfold"),
+                                file = here::here("sub-projects/trawl/derived-data/sn_s.rds"))
 
 sn_bayes_null_mod = brm(bf(S_n ~ 1),
                         data = mth_Sn, family = gaussian(),
@@ -255,7 +283,8 @@ sn_bayes_null_mod = brm(bf(S_n ~ 1),
                         save_pars = save_pars(all = TRUE),
                         file = here::here("sub-projects/trawl/derived-data/sn_null.rds"),
                         file_refit = 'on_change')
-sn_bayes_null_mod <- add_criterion(sn_bayes_null_mod, c("loo", "waic","kfold"))
+sn_bayes_null_mod <- add_criterion(sn_bayes_null_mod, c("loo", "waic","kfold"),
+                                   file = here::here("sub-projects/trawl/derived-data/sn_null.rds"))
 
 loo_compare(sn_bayes_null_mod, sn_bayes_s_mod, sn_bayes_full_mod,criterion =c("loo", "waic","kfold"), model_names = NULL)
 
@@ -274,7 +303,8 @@ turn_bayes_full_mod = brm(bf(total ~ s(month, bs = 'cc', k = 12)+ s(date_id)),
                           save_pars = save_pars(all = TRUE),
                           file = here::here("sub-projects/trawl/derived-data/turnover_full.rds"),
                           file_refit = 'on_change')
-turn_bayes_full_mod <- add_criterion(turn_bayes_full_mod, c("loo", "waic","kfold"))
+turn_bayes_full_mod <- add_criterion(turn_bayes_full_mod, c("loo", "waic","kfold"),
+                                     file = here::here("sub-projects/trawl/derived-data/turnover_full.rds"))
 
 summary(turn_bayes_full_mod)
 
@@ -286,7 +316,8 @@ turn_bayes_s_mod = brm(bf(total ~ s(month, bs = 'cc', k = 12)),
                           save_pars = save_pars(all = TRUE),
                           file = here::here("sub-projects/trawl/derived-data/turnover_s.rds"),
                           file_refit = 'on_change')
-turn_bayes_s_mod <- add_criterion(turn_bayes_s_mod, c("loo", "waic","kfold"))
+turn_bayes_s_mod <- add_criterion(turn_bayes_s_mod, c("loo", "waic","kfold"),
+                                  file = here::here("sub-projects/trawl/derived-data/turnover_s.rds"))
 
 summary(turn_bayes_s_mod)
 
@@ -298,7 +329,8 @@ turn_bayes_null_mod = brm(bf(total ~ 1),
                           save_pars = save_pars(all = TRUE),
                           file = here::here("sub-projects/trawl/derived-data/turnover_null.rds"),
                           file_refit = 'on_change')
-turn_bayes_null_mod <- add_criterion(turn_bayes_null_mod, c("loo", "waic","kfold"))
+turn_bayes_null_mod <- add_criterion(turn_bayes_null_mod, c("loo", "waic","kfold"),
+                                     file = here::here("sub-projects/trawl/derived-data/turnover_null.rds"))
 
 loo_compare(turn_bayes_null_mod, turn_bayes_s_mod, turn_bayes_full_mod,criterion =c("loo", "waic","kfold"), model_names = NULL)
 
@@ -324,12 +356,13 @@ mth_even %>%
                date_labels = "%Y")
 
 mth_group_stats = mth_group_stats %>%
+  dplyr::mutate(month = month(Date)) %>%
   bind_rows(mth_even %>%
-              pivot_longer(-Date:-date_id, names_to = 'index', values_to = 'median'))
+              pivot_longer(-c(Date, date_id, month), names_to = 'index', values_to = 'median'))
 
 mth_group_stats %>%
-  group_by(Date, date_id) %>%
-  pivot_wider(names_from = 'index', values_from ='median') %>%
+  group_by(Date, month, date_id) %>%
+  pivot_wider( names_from = 'index', values_from ='median') %>%
   ggplot()+
   geom_point(aes(x = S_n, y = gini_norm))
 
@@ -341,10 +374,19 @@ even_bayes_full_mod = brm(bf(gini_norm ~ s(date_id) + s(month, bs = 'cc', k = 12
                           save_pars = save_pars(all = TRUE),
                           file = here::here("sub-projects/trawl/derived-data/even_full.rds"),
                           file_refit = 'on_change')
-even_bayes_full_mod <- add_criterion(even_bayes_full_mod, c("loo", "waic","kfold"))
+even_bayes_full_mod <- add_criterion(even_bayes_full_mod, c("loo", "waic","kfold"),
+                                     file = here::here("sub-projects/trawl/derived-data/even_full.rds"))
 
 summary(even_bayes_full_mod)
 plot(even_bayes_full_mod)
+#estimate the probability of being zero or below
+date_draws = as.data.frame(even_bayes_full_mod)$bs_sdate_id
+percentile <- ecdf(date_draws);percentile(0)
+# estimate 
+msms <- conditional_smooths(even_bayes_full_mod)
+plot(msms)
+ceff <- conditional_effects(even_bayes_full_mod, 'date_id')
+plot(ceff)
 
 even_bayes_null_mod = brm(bf(gini_norm ~ s(month, bs = 'cc', k = 12)),
                           data = mth_even, family = gaussian(),
@@ -354,7 +396,8 @@ even_bayes_null_mod = brm(bf(gini_norm ~ s(month, bs = 'cc', k = 12)),
                           save_pars = save_pars(all = TRUE),
                           file = here::here("sub-projects/trawl/derived-data/even_null.rds"),
                           file_refit = 'on_change')
-even_bayes_null_mod <- add_criterion(even_bayes_null_mod, c("loo", "waic","kfold"))
+even_bayes_null_mod <- add_criterion(even_bayes_null_mod, c("loo", "waic","kfold"),
+                                     file = here::here("sub-projects/trawl/derived-data/even_null.rds"))
 
 even_bayes_s_mod = brm(bf(gini_norm ~ 1),
                           data = mth_even, family = gaussian(),
@@ -364,16 +407,13 @@ even_bayes_s_mod = brm(bf(gini_norm ~ 1),
                           save_pars = save_pars(all = TRUE),
                           file = here::here("sub-projects/trawl/derived-data/even_s.rds"),
                           file_refit = 'on_change')
-even_bayes_null_mod <- add_criterion(even_bayes_null_mod, c("loo", "waic","kfold"))
+even_bayes_s_mod <- add_criterion(even_bayes_s_mod, c("loo", "waic","kfold"),
+                                  file = here::here("sub-projects/trawl/derived-data/even_s.rds"))
 
 loo_compare(even_bayes_full_mod, even_bayes_s_mod, even_bayes_null_mod, criterion = c("loo", "waic", "kfold"), model_names = NULL)
 
-
-posterior_interval(even_bayes_full_mod, pars = "bs_sdate_id", prob = 0.874)
-msms <- conditional_smooths(even_bayes_full_mod)
-plot(msms)
 ceff <- conditional_effects(even_bayes_full_mod, 'date_id')
-plot(ceff)
+# plot(ceff)
 
 ceff_plot = data.frame(
   date = round(ceff$date_id$date_id,0),
@@ -391,7 +431,7 @@ ceff_plot %>%
   geom_line(data = mth_even, aes(x = Date, y = gini_norm), color = 'black')+
   scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y")+
-  scale_y_continuous(name = "Normalized Gini coefficient", limits = c(0,1), expand = c(0.01,0.01))
+  scale_y_continuous(name = "Normalized Gini coefficient", limits = c(0,0.55), expand = c(0.01,0.01))
 #### patterns of Hill diversity through time
 ## hill 
 
@@ -415,8 +455,7 @@ hill_time = vctrs::vec_c(hill_time0,hill_time0.1,hill_time0.5,hill_time1,hill_ti
   group_by(Date, date_id) %>%
   pivot_wider(names_from = 'q', values_from = 'value') %>%
   left_join(mth_group_stats %>%
-              dplyr::mutate(month = month(Date)) %>%
-              group_by(Date,month, date_id) %>%
+              group_by(Date, month, date_id) %>%
               pivot_wider(names_from = "index", values_from = "median")) %>%
   dplyr::mutate(q0_eff = q0/q0,
                 q0.1_eff = (q0.1/q0)*100,
@@ -1074,60 +1113,152 @@ TB_trawl_order =  TB_trawl_data %>%
 TB_trawl_order_names = fuzzySim::spCodes(TB_trawl_order, nchar.gen = 4, nchar.sp = 6) %>%
   setNames(.,make.names(TB_trawl_order))
 
-TB_trawl_taxasite_yr_dis = TB_trawl_taxasite_yr %>%
-  pivot_longer(-year,names_to = 'Common_name', values_to = 'Abundance') %>%
-  pivot_wider(names_from = 'year', values_from = 'Abundance') %>%
+TB_trawl_taxasite_dis = TB_trawl_taxasite_long %>%
+  dplyr::select(-Date) %>%
+  pivot_wider(names_from = 'date_id', values_from = 'Abundance') %>%
   column_to_rownames('Common_name')
 
-TB_trawl_q2_dis = dis1(TB_trawl_taxasite_yr_dis, q = 2, type = 'tax') %>%
+TB_trawl_q0_dis = dis1(TB_trawl_taxasite_dis, q = 0, type = 'tax') %>%
+  .[,TB_trawl_order] %>%
+  data.frame %>%
+  rownames_to_column('dis_type') %>%
+  dplyr::filter(dis_type == "UqN") %>%
+  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
+  dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)),
+                rel_value = value/sum(value, na.rm = TRUE))
+
+TB_trawl_q0.5_dis = dis1(TB_trawl_taxasite_dis, q = 0.5, type = 'tax') %>%
+  .[,TB_trawl_order] %>%
+  data.frame %>%
+  rownames_to_column('dis_type') %>%
+  dplyr::filter(dis_type == "UqN") %>%
+  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
+  dplyr::mutate(common_label = recode(Common_name, !!!TB_trawl_order_names),
+                rel_value = value/sum(value, na.rm = TRUE))
+
+TB_trawl_q0.5_cont = TB_trawl_q0.5_dis %>%
+  dplyr::filter(floor(rel_value*100) >=1) %>%
+  nrow
+
+TB_trawl_q1_dis = dis1(TB_trawl_taxasite_dis, q = 1, type = 'tax') %>%
   .[,TB_trawl_order] %>%
   data.frame %>%
   rownames_to_column('dis_type') %>%
   dplyr::filter(dis_type == "UqN") %>%
   pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
   dplyr::mutate(common_label = recode(Common_name, !!!TB_trawl_order_names))
-  # dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)))
 
-TB_trawl_q2_dis2 = dis1(TB_trawl_taxasite_yr_dis, q = 2, type = 'tax', type2 = 'k') %>%
+TB_trawl_q2_dis = dis1(TB_trawl_taxasite_dis, q = 2, type = 'tax') %>%
+  .[,TB_trawl_order] %>%
+  data.frame %>%
+  rownames_to_column('dis_type') %>%
+  dplyr::filter(dis_type == "UqN") %>%
+  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
+  dplyr::mutate(common_label = recode(Common_name, !!!TB_trawl_order_names))
+
+q0.5_dis_plot = TB_trawl_q0.5_dis %>%
+  dplyr::mutate(Common_name = factor(Common_name, levels = make.names(TB_trawl_order)),
+                common_label = factor(common_label, levels = TB_trawl_order_names[make.names(TB_trawl_order)])) %>%
+  ggplot()+
+  geom_col(aes(x= common_label, y = value))+
+  scale_y_continuous(name = "Species contribution", limits = c(0,0.06), expand = c(0.0001,0.0001))+
+  theme(axis.text.x = element_blank(),
+        axis.title = element_blank());q0.5_dis_plot
+
+q1_dis_plot = TB_trawl_q1_dis %>%
+  dplyr::mutate(Common_name = factor(Common_name, levels = make.names(TB_trawl_order)),
+                common_label = factor(common_label, levels = TB_trawl_order_names[make.names(TB_trawl_order)])) %>%
+  ggplot()+
+  geom_col(aes(x= common_label, y = value))+
+  scale_y_continuous(name = "Species contribution", limits = c(0,0.06), expand = c(0.0001,0.0001))+
+  theme(axis.text.x = element_blank(),
+        axis.title = element_blank());q1_dis_plot
+
+q2_dis_plot = TB_trawl_q2_dis %>%
+  dplyr::mutate(Common_name = factor(Common_name, levels = make.names(TB_trawl_order)),
+                common_label = factor(common_label, levels = TB_trawl_order_names[make.names(TB_trawl_order)])) %>%
+  ggplot()+
+  geom_col(aes(x= common_label, y = value))+
+  scale_y_continuous(name = "Species contribution", limits = c(0,0.06), expand = c(0.0001,0.0001))+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
+        axis.title = element_blank());q2_dis_plot
+
+q0.5_plot = ggplotGrob(q0.5_dis_plot);q1_plot = ggplotGrob(q1_dis_plot);q2_plot = ggplotGrob(q2_dis_plot)
+q0.5_plot$heights <- unit.pmax(q0.5_plot$heights,q1_plot$heights,q2_plot$heights )
+q1_plot$heights <- unit.pmax(q0.5_plot$heights,q1_plot$heights,q2_plot$heights )
+q2_plot$heights <- unit.pmax(q0.5_plot$heights,q1_plot$heights,q2_plot$heights )
+
+gridExtra::grid.arrange(q0.5_plot, q1_plot, q2_plot, 
+                        left = textGrob(label = "Species contribution", gp = gpar(fontfamily = 'serif', size = 12), rot = 90),
+                        ncol = 1)
+cowplot::plot_grid(q0.5_plot, q1_plot, q2_plot, align = 'v', nrow = 3, rel_heights = c(1/3,1/3,1/3))
+## Look at the contribution of specific trawl-dates
+TB_trawl_q0_dis2 = dis1(TB_trawl_taxasite_dis, q = 0, type = 'tax', type2 = 'k') %>%
   data.frame(check.names = FALSE) %>% 
   rownames_to_column('dis_type') %>%
-  pivot_longer(-dis_type,names_to ='year', values_to = 'value') 
+  pivot_longer(-dis_type,names_to ='date_id', values_to = 'value') %>%
+  dplyr::mutate(date_id = as.numeric(date_id)) %>%
+  left_join(TB_trawl_taxasite %>% dplyr::select(Date, date_id))
 
-TB_trawl_q2_dis2 %>%
+TB_trawl_q0.1_dis2 = dis1(TB_trawl_taxasite_dis, q = 0.1, type = 'tax', type2 = 'k') %>%
+  data.frame(check.names = FALSE) %>% 
+  rownames_to_column('dis_type') %>%
+  pivot_longer(-dis_type,names_to ='date_id', values_to = 'value') %>%
+  dplyr::mutate(date_id = as.numeric(date_id)) %>%
+  left_join(TB_trawl_taxasite %>% dplyr::select(Date, date_id))
+
+TB_trawl_q1_dis2 = dis1(TB_trawl_taxasite_dis, q = 1, type = 'tax', type2 = 'k') %>%
+  data.frame(check.names = FALSE) %>% 
+  rownames_to_column('dis_type') %>%
+  pivot_longer(-dis_type,names_to ='date_id', values_to = 'value') %>%
+  dplyr::mutate(date_id = as.numeric(date_id)) %>%
+  left_join(TB_trawl_taxasite %>% dplyr::select(Date, date_id))
+
+TB_trawl_q2_dis2 = dis1(TB_trawl_taxasite_dis, q = 2, type = 'tax', type2 = 'k') %>%
+  data.frame(check.names = FALSE) %>% 
+  rownames_to_column('dis_type') %>%
+  pivot_longer(-dis_type,names_to ='date_id', values_to = 'value') %>%
+  dplyr::mutate(date_id = as.numeric(date_id)) %>%
+  left_join(TB_trawl_taxasite %>% dplyr::select(Date, date_id))
+
+# plot contributions of each trawl to differences
+TB_trawl_q0_dis2 %>%
   dplyr::filter(dis_type == "UqN")%>%
-  dplyr::mutate(year = as.Date(year, format = "%Y")) %>%
-  ggplot(aes(x = year, y = value))+
+  ggplot(aes(x = Date, y = value))+
   geom_point()+
-  geom_path()
-  
-TB_trawl_q1_dis = dis1(TB_trawl_taxasite_yr_dis, q = 1, type = 'tax') %>%
-  .[,TB_trawl_order] %>%
-  data.frame %>%
-  rownames_to_column('dis_type') %>%
-  dplyr::filter(dis_type == "UqN") %>%
-  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
-  dplyr::mutate(common_label = recode(Common_name, !!!TB_trawl_order_names))
-# dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)))
+  geom_path()+
+  scale_y_continuous(expand = c(0.0001,0.0001))
+coord_cartesian(ylim = c(0,NA))
 
-TB_trawl_q1_dis2 = dis1(TB_trawl_taxasite_yr_dis, q = 1, type = 'tax', type2 = 'k') %>%
-  data.frame(check.names = FALSE) %>% 
-  rownames_to_column('dis_type') %>%
-  pivot_longer(-dis_type,names_to ='year', values_to = 'value') 
-
+TB_trawl_q0.1_dis2 %>%
+  dplyr::filter(dis_type == "UqN")%>%
+  ggplot(aes(x = Date, y = value))+
+  geom_point()+
+  geom_path()+
+  scale_y_continuous(expand = c(0.0001,0.0001))
 TB_trawl_q1_dis2 %>%
   dplyr::filter(dis_type == "UqN")%>%
-  dplyr::mutate(year = as.Date(year, format = "%Y")) %>%
-  ggplot()+
-  geom_point(aes(x = year, y = value))+
-  geom_path(aes(x = year, y = value))
+  ggplot(aes(x = Date, y = value))+
+  geom_point()+
+  geom_path()+
+  scale_y_continuous(expand = c(0.0001,0.0001))
+TB_trawl_q2_dis2 %>%
+  dplyr::filter(dis_type == "UqN")%>%
+  ggplot(aes(x = Date, y = value))+
+  geom_point()+
+  geom_path()+
+  scale_y_continuous(expand = c(0.0001,0.0001))
 
-TB_trawl_q0_dis = dis1(TB_trawl_taxasite_yr_dis, q = 0, type = 'tax') %>%
-  .[,TB_trawl_order] %>%
-  data.frame %>%
-  rownames_to_column('dis_type') %>%
-  dplyr::filter(dis_type == "UqN") %>%
-  pivot_longer(-dis_type, names_to = 'Common_name', values_to = 'value') %>%
-  dplyr::mutate(Common_name = factor(Common_name, make.names(TB_trawl_order)))
+
+#### -- 
+
+
+
+
+
+
+
+
 
 q0_dis_plot = TB_trawl_q0_dis %>%
   ggplot()+
