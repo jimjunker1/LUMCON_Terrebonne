@@ -105,7 +105,7 @@ adapt_delta = 0.99
 
 # Abstract
 
-Anthropogenic activities continue to exert long-term, varied, and increasing pressures on marine ecosystems causing alterations to biological diversity on broad and local scales. Shifts in biodiversity are variable, nuanced and difficult to predict, yet, understanding how communities change through time is crucial for predicting current and future changes to biological systems and the services they provide. We document a decade of biodiversity change in a shallow estuarine nekton community...
+Anthropogenic activities continue to exert long-term, varied, and increasing pressures on marine ecosystems causing alterations to biological diversity on broad and local scales. Shifts in biodiversity are variable, nuanced and difficult to predict, yet, understanding how communities change through time is crucial for predicting current and future changes to biological systems and the services they provide. We document a decade of biodiversity change in the nekton community of a shallow-estuary...
 
 \newpage
 
@@ -338,7 +338,7 @@ mth_group_stats %>%
   geom_line(size = 1.2)+
   theme_tufte()+
   geom_rangeframe(sides = "l")+
-  annotate('text', label = "A", x = as.Date("2009-01-30"), y = 11, family ='serif', size = 8, hjust = 0)+
+  annotate('text', label = "A", x = as.Date("2009-01-30"), y = 11, family ='serif', size = 6, hjust = 0)+
   theme(axis.title.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.text.x = element_blank(),
@@ -362,7 +362,7 @@ trawl_mth_turnover %>%
                date_labels = "%Y",expand = c(0.01,0.01))+
   theme_tufte()+
   geom_rangeframe(sides = "lb", color = 'black')+
-  annotate('text', label = "B", x = as.Date("2009-01-30"), y = 1, family = 'serif', vjust = 1, size = 8, hjust = 0)+
+  annotate('text', label = "B", x = as.Date("2009-01-30"), y = 1, family = 'serif', vjust = 1, size = 6, hjust = 0)+
   theme(legend.position = "none",
         legend.justification = c(0,1),
         axis.title.x = element_blank(),
@@ -495,7 +495,7 @@ hill_time_df %>%
   scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y", expand = c(0.01,0.01))+
   guides(color = guide_legend(nrow = 1))+
-  annotate('text', label = 'A', x = as.Date("2009-01-01"), y = Inf, size = 8, hjust = 0, vjust = 1, family ='serif')+
+  annotate('text', label = 'A', x = as.Date("2009-01-01"), y = Inf, size = 6, hjust = 0, vjust = 1, family ='serif')+
   theme(axis.title.x = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = 'transparent', color = NA),
@@ -512,7 +512,7 @@ qD_coefs_df %>%
   geom_ribbon(aes(y = q, xmin = Q2.5, xmax = Q97.5), color = 'lightgrey', alpha = 0.3)+
   geom_ribbon(aes(y = q, xmin = Q25, xmax = Q75), color = 'lightgrey', alpha = 0.5)+
   geom_path(aes(y = q, x = Estimate), size = 1.2)+
-  annotate('text', label = 'B', x = -2.5, y = 0, hjust = 0, vjust = 1, size = 8, family = 'serif')+
+  annotate('text', label = 'B', x = -2.5, y = 0, hjust = 0, vjust = 1, size = 6, family = 'serif')+
   theme_tufte()+
   geom_rangeframe(data = qD_coefs_df %>% 
   ungroup %>%
@@ -565,7 +565,7 @@ even_ceff_plot %>%
   theme(axis.title.x = element_blank())
 ```
 
-```{r spp contributions, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 5."}
+```{r spp contributions, fig.height=8, fig.width=3.5, dpi=450, fig.cap="Figure 5."}
 
 ### create ordering based on relative abundances -------------
 TB_trawl_order =  TB_trawl_data %>%
@@ -652,7 +652,7 @@ q0.1_dis_plot = TB_trawl_q0.1_dis %>%
   scale_y_continuous(name = "Species contribution", limits = c(0,0.06), expand = c(0.0001,0.0001))+
   theme_tufte()+
   geom_rangeframe(sides = "bl", color = "black")+
-  annotate("text", label = expression(italic(""^q*"D = 0.1")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 8, family = "serif")+
+  annotate("text", label = expression(italic(""^q*"D = 0.1")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 6, family = "serif")+
   theme(axis.text.x = element_blank(),
         axis.title = element_blank());
 
@@ -665,7 +665,7 @@ ggplot()+
   scale_y_continuous(name = "Species contribution", limits = c(0,NA), expand = c(0.0001,0.0001))+
   theme_tufte()+
   geom_rangeframe(sides = "bl", color = "black")+
-  annotate("text", label = expression(italic(""^q*"D = 0.5")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 8, family = "serif")+
+  annotate("text", label = expression(italic(""^q*"D = 0.5")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 6, family = "serif")+
   theme(axis.text.x = element_blank(),
         axis.title = element_blank());
 
@@ -678,7 +678,7 @@ ggplot()+
   scale_y_continuous(name = "Species contribution", limits = c(0,NA), expand = c(0.0001,0.0001))+
   theme_tufte()+
   geom_rangeframe(sides = "bl", color = "black")+
-  annotate("text", label = expression(italic(""^q*"D = 1")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 8, family = "serif")+
+  annotate("text", label = expression(italic(""^q*"D = 1")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 6, family = "serif")+
   theme(axis.text.x = element_blank(),
         axis.title = element_blank());
 
@@ -691,7 +691,7 @@ ggplot()+
   scale_y_continuous(name = "Species contribution", limits = c(0,NA), expand = c(0.0001,0.0001))+
   theme_tufte()+
   geom_rangeframe(sides = "bl", color = "black")+
-  annotate("text", label = expression(italic(""^q*"D = 2")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 8, family = "serif")+
+  annotate("text", label = expression(italic(""^q*"D = 2")), x = Inf, y = Inf, vjust = 1, hjust = 1, size = 6, family = "serif")+
   theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
         axis.title = element_blank())
 
@@ -763,12 +763,12 @@ TB_q2_spp_plot = TB_q2_spp_df %>%
   theme_tufte()+
   geom_rangeframe(data = TB_q2_spp_df, aes(x = Date, y = scale_n),
                   sides = 'bl', color = 'black', inherit.aes = FALSE)+
-  annotate('text', label = expression(italic(""^q*"D = 2")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 8, family = 'serif')+
+  annotate('text', label = expression(italic(""^q*"D = 2")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 6, family = 'serif')+
   theme(legend.title = element_blank(),
         axis.title.x = element_blank(),
         legend.position = c(0,1),
         legend.justification = c(0,1),
-        legend.background = element_rect(fill = 'transparent', color = NA));TB_q2_spp_plot
+        legend.background = element_rect(fill = 'transparent', color = NA));#TB_q2_spp_plot
 
 TB_q1_spp_plot = TB_q1_spp_df %>%
   ggplot()+
@@ -780,12 +780,12 @@ TB_q1_spp_plot = TB_q1_spp_df %>%
   theme_tufte()+
   geom_rangeframe(data = TB_q1_spp_df, aes(x = Date, y = scale_n),
                   sides = 'bl', color = 'black', inherit.aes = FALSE)+
-  annotate('text', label = expression(italic(""^q*"D = 1")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 8, family = 'serif')+
+  annotate('text', label = expression(italic(""^q*"D = 1")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 6, family = 'serif')+
   theme(legend.title = element_blank(),
         axis.title.x = element_blank(),
         legend.position = c(0,1),
         legend.justification = c(0,1),
-        legend.background = element_rect(fill = 'transparent', color = NA));TB_q1_spp_plot
+        legend.background = element_rect(fill = 'transparent', color = NA));#TB_q1_spp_plot
 
 TB_q0.5_spp_plot = TB_q0.5_spp_df %>%
   ggplot()+
@@ -797,12 +797,12 @@ TB_q0.5_spp_plot = TB_q0.5_spp_df %>%
   theme_tufte()+
   geom_rangeframe(data = TB_q0.5_spp_df, aes(x = Date, y = scale_n),
                   sides = 'bl', color = 'black', inherit.aes = FALSE)+
-  annotate('text', label = expression(italic(""^q*"D = 0.5")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 8, family = 'serif')+
+  annotate('text', label = expression(italic(""^q*"D = 0.5")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 6, family = 'serif')+
   theme(legend.title = element_blank(),
         axis.title.x = element_blank(),
         legend.position = c(0,1),
         legend.justification = c(0,1),
-        legend.background = element_rect(fill = 'transparent', color = NA));TB_q0.5_spp_plot
+        legend.background = element_rect(fill = 'transparent', color = NA));#TB_q0.5_spp_plot
 
 TB_q0.1_spp_plot = TB_q0.1_spp_df %>%
   ggplot()+
@@ -814,18 +814,18 @@ TB_q0.1_spp_plot = TB_q0.1_spp_df %>%
   theme_tufte()+
   geom_rangeframe(data = TB_q0.1_spp_df, aes(x = Date, y = scale_n),
                   sides = 'bl', color = 'black', inherit.aes = FALSE)+
-  annotate('text', label = expression(italic(""^q*"D = 0.1")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 8, family = 'serif')+
+  annotate('text', label = expression(italic(""^q*"D = 0.1")), x = as.Date("2019-12-31"), y = Inf, vjust = 1, hjust = 1, size = 6, family = 'serif')+
   theme(legend.title = element_blank(),
         axis.title.x = element_blank(),
         legend.position = c(0,1),
         legend.justification = c(0,1),
-        legend.background = element_rect(fill = 'transparent', color = NA));TB_q0.1_spp_plot
+        legend.background = element_rect(fill = 'transparent', color = NA));#TB_q0.1_spp_plot
 
-grid.draw(rbind(ggplotGrob(TB_q1_spp_plot), ggplotGrob(TB_q2_spp_plot), size = 'last'))
+grid.draw(rbind(ggplotGrob(TB_q0.5_spp_plot), ggplotGrob(TB_q2_spp_plot), size = 'last'))
 
 ```
 
-```{r trawl contributions,echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 6. The contribution of individual trawl-dates to dissimilarity of the entire timeseries for diversity order q = 0.1 (top), q = 1 (middle), and q = 2 (bottom)." }
+```{r trawl contributions,echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Figure 6. The contribution of individual trawl-dates to dissimilarity of the entire timeseries for diversity order q = 0.5 (top), q = 1 (middle), and q = 2 (bottom)." }
 
 TB_trawl_q0_dis2 = dis1(TB_trawl_taxasite_dis, q = 0, type = 'tax', type2 = 'k') %>%
   data.frame(check.names = FALSE) %>% 
@@ -854,6 +854,7 @@ TB_trawl_q2_dis2 = dis1(TB_trawl_taxasite_dis, q = 2, type = 'tax', type2 = 'k')
   pivot_longer(-dis_type,names_to ='date_id', values_to = 'value') %>%
   dplyr::mutate(date_id = as.numeric(date_id)) %>%
   left_join(TB_trawl_taxasite %>% dplyr::select(Date, date_id))
+
 TB_trawl_q0_dis2 = dis1(TB_trawl_taxasite_dis, q = 0, type = 'tax', type2 = 'k') %>%
   data.frame(check.names = FALSE) %>% 
   rownames_to_column('dis_type') %>%
@@ -891,6 +892,9 @@ TB_trawl_q0_dis2 %>%
   scale_y_continuous(expand = c(0.0001,0.0001))+
    scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y")+
+  theme_tufte()+
+  geom_rangeframe(sides = "lb", color = "black")+
+  annotate('text', label = expression(italic(''^q*"D = 0")), x = as.Date("2009-01-01"), y = Inf, size = 6, family = 'serif')+
   theme(axis.title = element_blank(),
         axis.text.x = element_blank())-> TB_q0_dis2_plot
 
@@ -902,8 +906,25 @@ TB_trawl_q0.1_dis2 %>%
   scale_y_continuous(expand = c(0.0001,0.0001))+
    scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y")+
+  theme_tufte()+
+  geom_rangeframe(sides = "lb", color = "black")+
+  annotate('text', label = expression(italic(''^q*"D = 0.1")), x = as.Date("2009-01-01"), y = Inf, size = 6, family = 'serif')+
   theme(axis.title = element_blank(),
         axis.text.x = element_blank())-> TB_q0.1_dis2_plot
+
+TB_trawl_q0.5_dis2 %>%
+  dplyr::filter(dis_type == "UqN")%>%
+  ggplot(aes(x = Date, y = value))+
+  geom_point()+
+  geom_path()+
+  scale_y_continuous(expand = c(0.0001,0.0001))+
+   scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
+               date_labels = "%Y")+
+  theme_tufte()+
+  geom_rangeframe(sides = "lb", color = "black")+
+  annotate('text', label = expression(italic(''^q*"D = 0.5")), x = as.Date("2019-12-31"), y = Inf, size = 6, family = 'serif', vjust = 1, hjust =1)+
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank())-> TB_q0.5_dis2_plot
 
 TB_trawl_q1_dis2 %>%
   dplyr::filter(dis_type == "UqN")%>%
@@ -913,20 +934,26 @@ TB_trawl_q1_dis2 %>%
   scale_y_continuous(expand = c(0.0001,0.0001))+
    scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y")+
+  theme_tufte()+
+  geom_rangeframe(sides = "lb", color = "black")+
+  annotate('text', label = expression(italic(''^q*"D = 1")), x = as.Date("2019-12-31"), y = Inf, size = 6, family = 'serif', vjust = 1, hjust = 1)+
   theme(axis.title = element_blank(),
         axis.text.x = element_blank())-> TB_q1_dis2_plot
+
 TB_trawl_q2_dis2 %>%
   dplyr::filter(dis_type == "UqN")%>%
   ggplot(aes(x = Date, y = value))+
   geom_point()+
   geom_path()+
-  annotate('text', label = "")+
   scale_y_continuous(expand = c(0.0001,0.0001))+
    scale_x_date(date_breaks = 'year', limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y")+
+  theme_tufte()+
+  geom_rangeframe(sides = "lb", color = "black")+
+  annotate('text', label = expression(italic(''^q*"D = 2")), x = as.Date("2019-12-31"), y = Inf, size = 6, family = 'serif', vjust = 1, hjust = 1)+
   theme(axis.title= element_blank()) -> TB_q2_dis2_plot
   
-grid.draw(rbind(ggplotGrob(TB_q0.1_dis2_plot),
+grid.draw(rbind(ggplotGrob(TB_q0.5_dis2_plot),
                 ggplotGrob(TB_q1_dis2_plot), 
                 ggplotGrob(TB_q2_dis2_plot), size = 'last'))
 ```
@@ -954,11 +981,11 @@ We are grateful the LUMCON staff for the logistical support of LUMCON's research
 
 # Appendix
 
-```{ r map fig S1, echo = FALSE, warning = FALSE, message= FALSE, }
+```{r map fig S1 }
 
 ```
 
-```{r env data fig S2, echo=FALSE, warning=FALSE, message=FALSE, fig.cap= "Figure S2. Time series of environmental variables a) water temperature and b) salinity measured at the Terrebonne Bay environmental monitoring station (XX N, XX W). Data were provided by the Environmental Monitoring department of LUMCON. Periods of no data in the salinity series represent periods of no data due to storm damage to monitoring stations."}
+```{r env data fig S2, fig.cap= "Figure S2. Time series of environmental variables a) water temperature and b) salinity measured at the Terrebonne Bay environmental monitoring station (XX N, XX W). Data were provided by the Environmental Monitoring department of LUMCON. Periods of no data in the salinity series represent periods of no data due to storm damage to monitoring stations."}
 
 source(here::here("sub-projects/trawl/R/load_enviroData.R"))
 
@@ -972,7 +999,7 @@ temperature_series %>%
                      expand = c(0.01,0.01))+
   scale_x_date(date_breaks = "year", limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y",expand = c(0.01,0.01))+
-  annotate('text', label = 'A', x = -Inf, y = Inf, vjust = 1, hjust = 0, size = 5, family = 'serif')+
+  annotate('text', label = 'A', x = as.Date("2009-01-01"), y = Inf, vjust = 1, hjust = 0, size = 6, family = 'serif')+
   theme_tufte()+
   geom_rangeframe(sides = "bl", color = "black")+
   theme(axis.title.x = element_blank(),
@@ -984,7 +1011,7 @@ salinity_series %>%
    scale_x_date(date_breaks = "year", limits = c(as.Date("2009-01-01"),as.Date("2019-12-31")),
                date_labels = "%Y",expand = c(0.01,0.01))+
   scale_y_continuous(name = "Salinity (PSU)", limits = c(0,NA), expand =c(0.01,0.01))+
-    annotate('text', label = 'B', x = -Inf, y = Inf, vjust = 1, hjust = 0, size = 5, family = 'serif')+
+    annotate('text', label = 'B', x = as.Date("2009-01-01"), y = Inf, vjust = 1, hjust = 0, size = 6, family = 'serif')+
   theme_tufte()+
   geom_rangeframe(sides = "bl", color = "black")+
   theme(axis.title.x = element_blank())
